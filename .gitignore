@@ -1,0 +1,21 @@
+# Build products and editor state
+.build/
+build/
+.swiftpm/
+.DS_Store
+xcuserdata/
+*.xcuserstate
+__pycache__/
+.claude/
+.playwright-mcp/
+
+# Secrets, recordings, model downloads and distribution artifacts
+.env*
+*.xcarchive
+*.ipa
+*.caf
+*.wav
+*.mlmodelc/
+*.mlpackage/
+*.dSYM/
+supabase/.temp/
