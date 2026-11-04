@@ -6,6 +6,8 @@ The website for Flype on iPhone, iPad and Mac, in German and English. It is stat
 python3 -m http.server 4173 --directory website
 ```
 
+Every push to `main` that changes `website/` deploys the site to GitHub Pages through [`.github/workflows/pages.yml`](../.github/workflows/pages.yml): <https://soeenplop.github.io/flype/>. `README.md` is not published.
+
 | German | English | Purpose | App Store Connect |
 | --- | --- | --- | --- |
 | `index.html` | `en/index.html` | Product page with images | Marketing URL (optional) |

@@ -26,7 +26,7 @@ Stored names cannot change without a migration: the JSON and settings keys (`dic
 | `supabase/` | `./scripts/check.sh backend`, for SQL also `./scripts/check.sh database` |
 | `website/` | Look at it on phone and desktop, in both languages |
 
-`git config core.hooksPath .githooks` runs the full check before each commit. GitHub Actions is not active. A template is in [scripts/ci-template.yml](scripts/ci-template.yml). To turn it on, move it to `.github/workflows/ci.yml`. Your Git credentials need the `workflow` scope for that.
+`git config core.hooksPath .githooks` runs the full check before each commit. GitHub Actions does not run these checks. A template is in [scripts/ci-template.yml](scripts/ci-template.yml). To turn it on, move it to `.github/workflows/ci.yml`. Changing workflows needs the `workflow` scope on your Git credentials.
 
 ## Commits
 
