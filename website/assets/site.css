@@ -179,7 +179,6 @@ details p { padding: 0 34px 20px 0; color: var(--muted); }
 .prose p, .prose ul, .prose ol, .prose address { margin: 12px 0 0; max-width: 40em; font-style: normal; }
 .prose li { margin-top: 6px; }
 .prose a { color: var(--violet); text-underline-offset: 3px; }
-.todo { background: #ffe58a; color: #3c2b00; padding: 1px 5px; border-radius: 4px; }
 .page .footer { color: var(--cream-muted); border-top: 1px solid #e6e2da; max-width: 760px; }
 .page .footer nav a { color: var(--cream-ink); }
 

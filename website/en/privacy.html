@@ -25,7 +25,7 @@
   <address>binda UG (haftungsbeschränkt)<br>Niedersachsenring 23<br>48147 Münster, Germany<br>Email: <a href="mailto:hello@binda.one">hello@binda.one</a></address>
 
   <h2>What stays on your device</h2>
-  <p>Voice recordings and the text recognized from them are processed on your device. This applies to both speech engines, Parakeet and Apple speech recognition, and to the optional cleanup unless you turn on cloud cleanup. Recordings are deleted after processing or when you cancel. There is no transcription history. Your last text stays in memory only until you delete it, transcribe again or quit the app.</p>
+  <p>Voice recordings and the text recognized from them are processed on your device. This applies to both speech engines, Parakeet and Apple speech recognition, and to the optional cleanup unless you turn on cloud cleanup. Recordings are deleted after processing or when you cancel. There is no transcription history. Your last text stays in memory only until you delete it, record again or quit the app.</p>
   <p>The Flype keyboard does not store your keystrokes. Only when a transcription starts does Flype read up to 200 characters before the cursor, so the recognized text fits the sentence you started. They are deleted after the transcription and leave your device only with cloud cleanup turned on. The keyboard needs Full Access to receive transcriptions from the app and to read your personal dictionary. Regular typing works without Full Access.</p>
 
   <h2>Accessibility on Mac</h2>
@@ -35,12 +35,12 @@
   <p>Flype records only after you start a recording. On iPhone and iPad the microphone stays active after the first transcription for further transcriptions, without storing audio between them. iOS indicates this with the orange dot. You end it in Flype or by locking the device, or it ends by itself after five minutes without an active keyboard. On Mac, Flype records only while you hold the microphone key, for at most two minutes; locking the Mac or putting it to sleep cancels the recording.</p>
 
   <h2>Speech model download</h2>
-  <p>When you download Parakeet, the app fetches the model from Hugging Face (Hugging Face, Inc., USA). The provider technically receives your IP address. No recordings or text are transmitted. Apple speech recognition downloads its language data through the operating system when needed.</p>
+  <p>When you download Parakeet, the app fetches the model from Hugging Face (Hugging Face, Inc., USA). The provider technically receives your IP address and may process it in the USA. It is responsible for this itself. The legal basis is providing the model you chose (Art. 6(1)(b) GDPR). No recordings or text are transmitted. Apple speech recognition downloads its language data through the operating system when needed.</p>
 
   <h2>Cloud cleanup (optional)</h2>
-  <p>Cloud cleanup is off by default and requires an account. If you turn it on, each transcription to be cleaned up is sent, along with up to 200 characters before the cursor and matching terms from your words, through our processor Supabase to OpenAI, where an AI model processes it. According to OpenAI, data sent through the API is not used for training and is retained for up to 30 days for abuse detection. Voice recordings are never transmitted.</p>
-  <p>The legal basis is your consent (Art. 6(1)(a) GDPR), which you can withdraw at any time by turning the feature off. Flype does not store the text. For the usage limit we store only the number of requests and characters per account; these counters are deleted with the account.</p>
-  <p><mark class="todo">Open: add OpenAI contracting party, server location and transfer mechanism.</mark></p>
+  <p>Cloud cleanup is off by default and requires an account. If you turn it on, each transcription to be cleaned up is sent, along with up to 200 characters before the cursor and matching terms from your words, through our processor Supabase to OpenAI, where an AI model processes it. The text can contain anything you said. Flype does not give OpenAI a user ID. Voice recordings are never transmitted.</p>
+  <p>The legal basis is your consent (Art. 6(1)(a) GDPR), which you can withdraw at any time with effect for the future by turning the feature off. Flype does not store the text. For the usage limit we store only the number of requests and characters per account; these counters are deleted with the account.</p>
+  <p>The recipient is our processor OpenAI Ireland Ltd., 1st Floor, The Liffey Trust Centre, 117-126 Sheriff Street Upper, Dublin 1, D01 YC43, Ireland. OpenAI may also process the data outside the European Economic Area, in particular in the USA. Under the data processing agreement, such transfers rely on the European Commission's standard contractual clauses or an adequacy decision. According to OpenAI, data sent through the API is not used for training and is retained for up to 30 days for abuse detection, unless the law requires longer retention.</p>
 
   <h2>Account and sync</h2>
   <p>An account is optional. If you sign in with Apple or Google, we process the following to provide sync (Art. 6(1)(b) GDPR):</p>
@@ -49,7 +49,7 @@
     <li>your personal words and their variants</li>
     <li>your settings for writing style, languages, microphone key and speech engine</li>
   </ul>
-  <p>This data is held by our processor Supabase Inc. <mark class="todo">Open: add project region and transfer mechanism.</mark> Recordings and transcriptions are not synced. Sign-in is handled by Apple or Google, who process data under their own terms. Your sign-in token is stored in your device's protected keychain.</p>
+  <p>This data is held by our processor Supabase Pte. Ltd., 65 Chulia Street #38-02/03, OCBC Centre, Singapore 049513. The database, sign-in service and backups are in the EU, in the Frankfurt region (eu-central-1). During sync, Supabase also processes technical access data such as your IP address. Server functions, for example for cloud cleanup, are not tied to this region. For support and operations, Supabase companies may also access data from Singapore and the USA; these transfers are safeguarded by the European Commission's standard contractual clauses. Recordings and transcriptions are not synced. Sign-in is handled by Apple or Google, who process data on their own responsibility and under their own terms. Your sign-in token is stored in your device's protected keychain.</p>
 
   <h2>Retention and deletion</h2>
   <p>We keep account data until you delete your account, which you can do at any time in the app under “Dein Konto” (Your account). This permanently removes the account, words and settings, and for Apple sign-in revokes the link to your Apple ID. Local words and settings remain on each device.</p>
@@ -59,11 +59,13 @@
   <p>Flype contains no advertising, no tracking and no analytics services.</p>
 
   <h2>This website</h2>
-  <p>This website sets no cookies, loads no external fonts or services and contains no analytics. The keyboard demo runs only in your browser and records nothing; what you type there is not transmitted.</p>
-  <p>When you visit, our hosting provider processes technically necessary data such as IP address, time and requested page in order to deliver and secure the site (Art. 6(1)(f) GDPR). <mark class="todo">Open: add hosting provider, server location and log retention.</mark></p>
+  <p>This website sets no cookies, loads no external fonts or services and contains no analytics.</p>
+  <p>The website is hosted on GitHub Pages, a service of GitHub, Inc., 88 Colin P. Kelly Jr. St., San Francisco, CA 94107, USA, and GitHub B.V., Prins Bernhardplein 200, 1097 JB Amsterdam, Netherlands. When you visit, GitHub processes technically necessary data such as IP address, time and requested page in order to deliver and secure the site. According to GitHub, the IP address is logged and stored for security purposes. The legal basis is our legitimate interest in providing the website securely (Art. 6(1)(f) GDPR).</p>
+
+  <p>GitHub processes data in various locations, including the USA, and states neither a fixed server location nor a fixed log retention period for GitHub Pages. For transfers to the USA, GitHub relies on the EU-U.S. Data Privacy Framework and the European Commission's standard contractual clauses. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a> for details.</p>
 
   <h2>Your rights</h2>
-  <p>You have the right to access, rectification, erasure, restriction of processing, data portability and objection, and the right to lodge a complaint with a data protection authority. Our competent authority is the Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen. Please contact us at the address above.</p>
+  <p>You have the right to access, rectification, erasure, restriction of processing, data portability and objection, and the right to lodge a complaint with a data protection authority. Our competent authority is the Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen. Please contact us at the address above. An account and cloud cleanup are optional; Flype keeps working on your device without them. There is no automated decision-making, including profiling.</p>
 </main>
 <footer class="footer">
   <div class="footer-brand"><p>Flype by binda UG (haftungsbeschränkt), Münster, Germany</p></div>

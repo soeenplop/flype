@@ -19,7 +19,7 @@ Each language is its own file, so always change both. Navigation for both langua
 
 ## Before publishing
 
-1. Fill every highlighted placeholder (`class="todo"`) in `datenschutz.html` and `en/privacy.html`: OpenAI contracting party, Supabase region, data transfers, hosting.
+1. Execute OpenAI's data processing agreement, because the privacy policy names OpenAI as a processor. Update the policy if the hosting or a provider changes.
 2. Get the privacy policy and legal notice reviewed. Add the VAT ID to the legal notice if there is one.
 3. Add the price to the FAQ in both `index.html` files.
 4. At launch, update the availability note in the hero and the download answer in the FAQ in both languages, and add real download links.

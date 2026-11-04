@@ -24,7 +24,7 @@ Checked on November 4, 2026 against the [App Review Guidelines](https://develope
 
 Done: migrations and Edge Functions (`revoke-apple-token`, `cloud-cleanup`) are live. The secrets `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET` and `OPENAI_API_KEY` are set.
 
-1. **Privacy policy:** Fill the placeholders in `website/datenschutz.html` and `website/en/privacy.html` (address, email, Supabase region, OpenAI contracting party, server location, data transfers). Sort out data processing agreements with Supabase and OpenAI, and get the text reviewed, including OpenAI's retention of up to 30 days.
+1. **Privacy policy:** Execute OpenAI's data processing agreement and confirm that the Supabase and OpenAI accounts belong to binda UG. Get `website/datenschutz.html` and `website/en/privacy.html` reviewed, including OpenAI's retention of up to 30 days.
 2. **Public pages:** Publish the privacy and support pages and enter their addresses in `shared/FlypeCore/Sources/FlypeCore/FlypeLinks.swift`. Both are still `nil`.
 3. **Spending limit:** Set it in the OpenAI project.
 4. **Test Apple sign-in:** With a real Apple account, check that Supabase returns `provider_refresh_token` and that revoking works on deletion.
