@@ -1,0 +1,25 @@
+name: CI
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  apple:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/check.sh lint
+      - run: ./scripts/check.sh core
+      - run: ./scripts/check.sh ios
+      - run: ./scripts/check.sh macos
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --test supabase/functions/revoke-apple-token/index.test.mjs
+      - run: node --test supabase/functions/cloud-cleanup/handler.test.mjs
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y zsh
+      - run: ./scripts/test-database.sh
