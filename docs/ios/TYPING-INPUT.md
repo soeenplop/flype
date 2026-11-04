@@ -1,0 +1,39 @@
+# Fast keyboard input
+
+Why the keyboard is built the way it is. Most of this exists because something felt slow or dropped touches.
+
+## Touch handling
+
+- Keys keep their visible gaps. `KeyboardKeyGrid` also assigns touches in the gaps to a key, first by row, then by the nearest visible target. Each key's touch area reaches halfway to its neighbors.
+- `KeyboardInputView` passes the keyboard's outer edges and the narrow gap below the suggestion bar on to the grid, so edge keys reach the keyboard's edge. The suggestion bar keeps its own area, and the edge below the microphone does not trigger it.
+- The main view needs a background with minimal opacity (0.001). The system does not deliver touches from fully transparent areas to the extension.
+- The hosted microphone link receives touches through its own view hierarchy, so enlarged touch areas of neighboring keys cannot intercept it.
+- A short tap no longer waits for a long-press gesture to end. Once a real long press is recognized, UIKit suppresses the regular character, so choosing an umlaut adds no extra base letter.
+- The key preview appears on touch-down and disappears on lift, with no minimum duration. It hangs on the observing gesture `KeyboardPreviewGesture` rather than key state, because the system can delay touches at the screen edge for views. The gesture recognizes, delays and interrupts nothing.
+
+## Keeping the main thread free
+
+- The system spell checker has to run on the main actor. It starts only after a 200 ms typing pause and is rescheduled only by keystrokes. Correction suggestions run only with fewer than two completions, and repeat lookups are cached.
+- File access, the personal dictionary, sorting and assembling suggestions run in their own actor. After computing, document, text, selection, language and full access are checked again, and outdated results are dropped.
+- Characters go directly through the document proxy. The suggestion bar changes height only when its visibility changes.
+- The 350 ms refresh reads session state and pending transcriptions off the main thread, so file locks shared with the app cannot hold up touches. At most one further read is queued.
+- The keyboard's heartbeat is written every 1.5 seconds, and the app accepts it for 3 seconds. Freshness is computed inside the same file lock as the read, so a heartbeat written during the wait cannot look like a future state.
+- One-time requests and claiming a transcription stay synchronous on the main thread, because they must be settled right before opening or inserting.
+
+## Diagnostics
+
+Debug builds log only screen zones and durations through `KeyboardTouchDiagnostics`, never characters or words. The summary appears every 50 touches and when the keyboard hides, in Console under subsystem `one.binda.flype.keyboard`. `refresh` and `spelling` also show up as signposts in Instruments. Layout diagnostics are off by default and turned on through `keyboardLayoutDiagnostics` in shared settings.
+
+Geometry tests cover gaps, uneven function keys, keyboard edges, invalid geometry and full grid coverage. Real typing speed and overlapping thumbs have to be tested on an iPhone, because core tests do not simulate UIKit touches.
+
+## Links and start requests
+
+Tapping the microphone link writes its matching, still valid one-time request again. Regular refreshes may not replace it until it is confirmed or the start wait expires. That keeps the link, the start and the return target on one request. If the write fails, the link does not open.
+
+The keyboard uses `one.binda.flype://dictate` and `one.binda.flype://review`, which reliably open the current app even if an old development install (`de.flype.app`) still registers `flype://`. The old scheme stays registered for existing links and OAuth.
+
+## Layout
+
+- The language menu is the native long-press menu on the space bar. A short tap types a space, and a double tap keeps the period rule. The menu stays stable between unchanged refreshes and locks during preparation, recording and processing.
+- The microphone sits left of the space bar.
+- The iPhone key area is 216 points without and 262 points with suggestions, with 10 points between the four rows. iPad has its own layout.
