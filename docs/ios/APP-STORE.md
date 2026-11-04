@@ -13,7 +13,7 @@ Checked on November 4, 2026 against the [App Review Guidelines](https://develope
 | 4.4.1 Switch to the next keyboard | Own globe key when `needsInputModeSwitchKey` requires it. Otherwise iOS shows the globe below the keyboard. |
 | 4.4.1 Usable without Full Access | Typing works. The language then follows the device, because the App Group is out of reach. |
 | 4.8 Login services | Sign in with Apple is offered equally next to Google. |
-| 5.1.1 (i) Privacy in the app | "Deine Privatsphäre" screen. The link appears once `FlypeLinks.privacyPolicy` is set. |
+| 5.1.1 (i) Privacy in the app | "Deine Privatsphäre" screen, with a link to the privacy policy. |
 | 5.1.1 (v) Account deletion | "Konto löschen" under "Dein Konto", including revoking the Apple token. |
 | 5.1.2 (i) Sharing with third-party AI | Cloud cleanup is off, needs an account and a dialog naming OpenAI, the data and the purpose. The switch is per device and can be turned off at any time. |
 | Privacy manifest | `shared/Resources/PrivacyInfo.xcprivacy` in app, keyboard and Mac app. |
@@ -25,7 +25,7 @@ Checked on November 4, 2026 against the [App Review Guidelines](https://develope
 Done: migrations and Edge Functions (`revoke-apple-token`, `cloud-cleanup`) are live. The secrets `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET` and `OPENAI_API_KEY` are set.
 
 1. **Privacy policy:** Execute OpenAI's data processing agreement and confirm that the Supabase and OpenAI accounts belong to binda UG. Get `website/datenschutz.html` and `website/en/privacy.html` reviewed, including OpenAI's retention of up to 30 days.
-2. **Public pages:** Publish the privacy and support pages and enter their addresses in `shared/FlypeCore/Sources/FlypeCore/FlypeLinks.swift`. Both are still `nil`.
+2. **Public pages:** Both are live and linked in the apps through `shared/FlypeCore/Sources/FlypeCore/FlypeLinks.swift`. In App Store Connect, use `https://soeenplop.github.io/flype/datenschutz.html` and `https://soeenplop.github.io/flype/support.html`, plus the `en/` pages for English. Change them everywhere if the site gets its own domain.
 3. **Spending limit:** Set it in the OpenAI project.
 4. **Test Apple sign-in:** With a real Apple account, check that Supabase returns `provider_refresh_token` and that revoking works on deletion.
 5. **Device tests in a Release build:** Parakeet in the background, the offline fallback, field text from the keyboard and the Siri button, on iOS 26 and 27. Test numbers, negations and spoken questions with both models, because the model's answer is inserted unreviewed.

@@ -78,12 +78,8 @@ struct PrivacyView: View {
                 )
                 .font(.footnote).foregroundStyle(.secondary)
             #endif
-            if let policy = FlypeLinks.privacyPolicy {
-                Link(L10n.text("Vollständige Datenschutzerklärung"), destination: policy)
-            }
-            if let support = FlypeLinks.support {
-                Link(L10n.text("Hilfe und Kontakt"), destination: support)
-            }
+            Link(L10n.text("Vollständige Datenschutzerklärung"), destination: FlypeLinks.privacyPolicy())
+            Link(L10n.text("Hilfe und Kontakt"), destination: FlypeLinks.support())
         }.navigationTitle(L10n.text("Deine Privatsphäre"))
             #if os(iOS)
                 .task { hasPendingText = (try? ResultStore.shared().pending()) != nil }

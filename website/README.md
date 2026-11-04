@@ -23,7 +23,7 @@ Each language is its own file, so always change both. Navigation for both langua
 2. Get the privacy policy and legal notice reviewed. Add the VAT ID to the legal notice if there is one.
 3. Add the price to the FAQ in both `index.html` files.
 4. At launch, update the availability note in the hero and the download answer in the FAQ in both languages, and add real download links.
-5. Once hosted, put the addresses in `shared/FlypeCore/Sources/FlypeCore/FlypeLinks.swift` and App Store Connect.
+5. Put the addresses in App Store Connect. The apps already link to them through `shared/FlypeCore/Sources/FlypeCore/FlypeLinks.swift`, which needs updating if the site gets its own domain.
 
 ## Screenshots
 
