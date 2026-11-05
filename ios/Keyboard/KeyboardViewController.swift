@@ -372,10 +372,11 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private func updateRecordingView() {
         let recording = voiceSession?.phase == .recording && hasFullAccess
         let processing = voiceSession?.phase.isWorking == true && hasFullAccess
-        let keyHeight: CGFloat = usesTabletLayout ? tabletKeysHeight : 216
         let barHeight = (suggestionHeight?.constant ?? 44) + 2
+        // On iPad the word row takes its height from the keys, so the keyboard stays as high as the native one.
         let desiredHeight: CGFloat =
-            recording || processing ? keyHeight : keyHeight + (suggestionBar.isHidden ? 0 : barHeight)
+            usesTabletLayout
+            ? tabletKeysHeight : recording || processing ? 216 : 216 + (suggestionBar.isHidden ? 0 : barHeight)
         if heightConstraint?.constant != desiredHeight {
             heightConstraint?.constant = desiredHeight
             preferredContentSize = CGSize(width: view.bounds.width, height: desiredHeight)
@@ -412,7 +413,6 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         capsLockButton = nil
         rows.spacing = usesTabletLayout ? tabletGap : 10
         suggestionBar.sideInset = usesTabletLayout ? view.bounds.width * 0.26 : 0
-        // iOS adds its own row with undo, redo and paste above any keyboard on iPad, so this one stays low.
         suggestionHeight?.constant = usesTabletLayout ? 40 : 44
         if usesTabletLayout {
             tabletBuiltWidth = view.bounds.width
@@ -521,8 +521,10 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     // The grid of the native 12.9-inch keyboard, measured on a row 1428 units wide and scaled to fit.
     private var tabletScale: CGFloat { (view.bounds.width - 12) / 1428 }
     private var tabletGap: CGFloat { 11 * tabletScale }
+    /// iOS adds a row with undo, redo and paste above this height. It takes neither words nor can it be removed,
+    /// and it is 8 points lower than the native row that also holds the words.
     private var tabletKeysHeight: CGFloat {
-        5 * (view.bounds.width - 12) * 0.056 + 4 * tabletGap + 5
+        5 * (view.bounds.width - 12) * 0.056 + 4 * tabletGap + 5 + 8
     }
 
     private func tabletRow() -> UIStackView {
@@ -576,18 +578,12 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             return button
         }
         let button = tabletKey()
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = .center
-        paragraph.lineSpacing = tabletScale > 0.8 ? 8 : 3
+        let large = tabletScale > 0.8
+        button.swipeChanged = { [weak self] button, swiped in
+            self?.showTabletLabel(on: button, value: value, shifted: shifted, swiped: swiped, large: large)
+        }
+        showTabletLabel(on: button, value: value, shifted: shifted, swiped: false, large: large)
         button.titleLabel?.numberOfLines = 2
-        button.setAttributedTitle(
-            NSAttributedString(
-                string: shifted + "\n" + value.base,
-                attributes: [
-                    .font: UIFont.systemFont(ofSize: tabletScale > 0.8 ? 18 : 15),
-                    .foregroundColor: KeyboardKeyAppearance.foreground,
-                    .paragraphStyle: paragraph,
-                ]), for: .normal)
         button.accessibilityLabel = value.base
         button.accessibilityCustomActions = [
             UIAccessibilityCustomAction(name: shifted) { [weak self] _ in
@@ -596,11 +592,35 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             }
         ]
         button.addAction(
-            UIAction { [weak self] _ in
-                guard let self else { return }
-                self.typeTabletCharacter(self.shiftPressed || self.capsLock ? shifted : value.base)
+            UIAction { [weak self, weak button] _ in
+                guard let self, let button else { return }
+                let upper = button.isSwipedUp || self.shiftPressed || self.capsLock
+                self.typeTabletCharacter(upper ? shifted : value.base)
             }, for: .touchUpInside)
+        // Swiping up can end above the key, which UIKit reports as a release outside of it.
+        button.addAction(
+            UIAction { [weak self, weak button] _ in
+                if button?.isSwipedUp == true { self?.typeTabletCharacter(shifted) }
+            }, for: .touchUpOutside)
         return button
+    }
+
+    /// While swiping, only the character that the release will insert is shown.
+    private func showTabletLabel(
+        on button: KeyboardKeyButton, value: TabletKey, shifted: String, swiped: Bool, large: Bool
+    ) {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        paragraph.lineSpacing = large ? 8 : 3
+        let title = NSAttributedString(
+            string: swiped ? shifted : shifted + "\n" + value.base,
+            attributes: [
+                .font: UIFont.systemFont(ofSize: swiped ? (large ? 26 : 22) : (large ? 18 : 15)),
+                .foregroundColor: KeyboardKeyAppearance.foreground,
+                .paragraphStyle: paragraph,
+            ])
+        button.setAttributedTitle(title, for: .normal)
+        button.setAttributedTitle(title, for: .highlighted)
     }
 
     private func typeTabletCharacter(_ character: String) {
