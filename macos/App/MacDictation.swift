@@ -9,6 +9,8 @@ import SwiftUI
 final class MacDictation: ObservableObject {
     @Published private(set) var recording = false
     @Published private(set) var busy = false
+    /// False from the moment text can reach another app, because that cannot be taken back.
+    @Published private(set) var canCancel = false
     @Published private(set) var level: Float = 0
     @Published private(set) var status = "Alles bereit"
     @Published var result = ""
@@ -38,6 +40,10 @@ final class MacDictation: ObservableObject {
         shortcut.onRelease = { [weak self] in self?.finish() }
         shortcut.onCancel = { [weak self] in
             guard let self, self.recording else { return }
+            self.cancel()
+        }
+        shortcut.onCancelKey = { [weak self] in
+            guard let self, self.canCancel else { return }
             self.cancel()
         }
         shortcut.onUserInteraction = { [weak self] in
@@ -137,7 +143,13 @@ final class MacDictation: ObservableObject {
     private func confirmHolding() {
         guard recording else { return }
         status = "Ich höre zu …"
-        overlay.show { [weak self] in self?.finish() }
+        overlay.show { [weak self] in self?.cancel() }
+        setCanCancel(true)
+    }
+    private func setCanCancel(_ value: Bool) {
+        canCancel = value
+        shortcut.cancelKeyActive = value
+        overlay.setCanCancel(value)
     }
 
     func finish() {
@@ -152,7 +164,7 @@ final class MacDictation: ObservableObject {
         busy = true
         meter?.cancel()
         timeout?.cancel()
-        overlay.processing()
+        overlay.setStage(.recognizing)
         capture?.stop()
         capture = nil
         level = 0
@@ -178,6 +190,7 @@ final class MacDictation: ObservableObject {
                 await service.prepare(language: options.language)
                 text = try await service.correct(text, file: file, dictionary: dictionary).text
                 if options.mode == .cleaned {
+                    overlay.setStage(.cleaning)
                     do {
                         let token = try? await AccountController.cloudCleanupToken()
                         text = try await TextCleanupService().clean(
@@ -193,6 +206,7 @@ final class MacDictation: ObservableObject {
                 }
                 try Task.checkCancellation()
                 guard operation == id else { return }
+                setCanCancel(false)
                 result = text
                 if practice {
                     status = "Dein Text ist bereit."
@@ -233,6 +247,7 @@ final class MacDictation: ObservableObject {
 
     func cancel() {
         operation = UUID()
+        setCanCancel(false)
         work?.cancel()
         preparation?.cancel()
         preparation = nil
@@ -246,6 +261,9 @@ final class MacDictation: ObservableObject {
         engine = nil
         recording = false
         busy = false
+        // Discarded text never stays behind for "Compare original".
+        original = ""
+        cleanupNotice = nil
         overlay.hide()
         status = "Alles bereit"
     }
@@ -265,20 +283,26 @@ private enum MacError: LocalizedError {
 }
 @MainActor
 private final class RecordingOverlayState: ObservableObject {
+    enum Stage { case recording, recognizing, cleaning }
     @Published var level: Float = 0
-    @Published var processing = false
+    @Published var stage = Stage.recording
+    @Published var canCancel = true
 }
 
 @MainActor
 private final class RecordingOverlay {
     private var panel: NSPanel?
     private let state = RecordingOverlayState()
-    func show(stop: @escaping () -> Void) {
+    func show(cancel: @escaping () -> Void) {
         hide()
         state.level = 0
-        state.processing = false
+        state.stage = .recording
+        state.canCancel = true
+        let content = NSHostingView(
+            rootView: RecordingCapsule(state: state, language: .recognition(), cancel: cancel))
+        let size = content.fittingSize
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 290, height: 84), styleMask: [.borderless, .nonactivatingPanel],
+            contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered, defer: false)
         panel.isFloatingPanel = true
         panel.level = .floating
@@ -286,19 +310,20 @@ private final class RecordingOverlay {
         panel.backgroundColor = .clear
         panel.hasShadow = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.contentView = NSHostingView(
-            rootView: RecordingCapsule(state: state, language: .recognition(), stop: stop))
+        panel.contentView = content
         if let screen = NSScreen.main {
-            panel.setFrameOrigin(NSPoint(x: screen.visibleFrame.midX - 145, y: screen.visibleFrame.minY + 28))
+            panel.setFrameOrigin(
+                NSPoint(x: screen.visibleFrame.midX - size.width / 2, y: screen.visibleFrame.minY + 28))
         }
         self.panel = panel
         panel.orderFrontRegardless()
     }
-    func processing() {
+    func setStage(_ stage: RecordingOverlayState.Stage) {
         state.level = 0
-        state.processing = true
+        state.stage = stage
         // Keep the nonactivating panel visible without taking focus from the target editor.
     }
+    func setCanCancel(_ value: Bool) { state.canCancel = value }
     func update(level: Float) { state.level = level.isFinite ? min(1, max(0, level)) : 0 }
     func hide() {
         panel?.orderOut(nil)
@@ -309,37 +334,59 @@ private final class RecordingOverlay {
 private struct RecordingCapsule: View {
     @ObservedObject var state: RecordingOverlayState
     let language: FlypeLanguage
-    let stop: () -> Void
+    let cancel: () -> Void
+    @State private var hovering = false
+    private var hint: String {
+        MacEnvironment.isSandboxed
+            ? L10n.text("Loslassen zum Kopieren")
+            : String(format: L10n.text("%@ loslassen zum Einfügen"), DictationKey.current().name)
+    }
     var body: some View {
         HStack(spacing: 15) {
-            if state.processing {
-                ProgressView().controlSize(.small).frame(width: 38, height: 38)
-                    .accessibilityLabel(L10n.text("Dein Text entsteht …"))
-            } else {
-                Button(action: stop) {
-                    Image(systemName: "waveform").font(.system(size: 16, weight: .medium))
-                        .frame(width: 38, height: 38)
-                        .background(FlypeDesign.soft, in: Circle())
-                        .overlay(
-                            Circle().stroke(FlypeDesign.accent.opacity(0.75), lineWidth: 2 + CGFloat(state.level) * 5))
-                }.buttonStyle(.plain).foregroundStyle(FlypeDesign.accent)
-                    .accessibilityLabel(L10n.text("Transkription beenden"))
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(L10n.text(state.processing ? "Dein Text entsteht …" : "Ich höre zu …"))
-                    .font(.system(size: 14, weight: .medium))
-                if !state.processing {
-                    Text(
-                        MacEnvironment.isSandboxed
-                            ? L10n.text("Loslassen zum Kopieren")
-                            : String(format: L10n.text("%@ loslassen zum Einfügen"), DictationKey.current().name)
+            if state.stage == .recording {
+                // Display only: releasing the key inserts, and the menu bar offers ending for VoiceOver.
+                Image(systemName: "waveform").font(.system(size: 16, weight: .medium))
+                    .frame(width: 38, height: 38)
+                    .background(FlypeDesign.soft, in: Circle())
+                    .overlay(
+                        Circle().stroke(FlypeDesign.accent.opacity(0.75), lineWidth: 2 + CGFloat(state.level) * 5)
                     )
-                    .font(.system(size: 11)).foregroundStyle(.secondary)
-                }
+                    .foregroundStyle(FlypeDesign.accent)
+                    .accessibilityHidden(true)
+            } else {
+                ProgressView().controlSize(.small).frame(width: 38, height: 38).accessibilityHidden(true)
+            }
+            // Every text stays in the layout, so the capsule keeps its width and the button its place.
+            ZStack(alignment: .leading) {
+                labels("Ich höre zu …", detail: hint, shown: state.stage == .recording)
+                labels(
+                    "Dein Text entsteht …", detail: L10n.text("Sprache wird erkannt"),
+                    shown: state.stage == .recognizing)
+                labels("Dein Text entsteht …", detail: L10n.text("Wird bereinigt"), shown: state.stage == .cleaning)
             }
             Text(verbatim: language.rawValue.uppercased()).font(.system(size: 11, weight: .medium)).foregroundStyle(
                 .secondary)
-        }.padding(.horizontal, 20).padding(.vertical, 14)
-            .background(FlypeDesign.surface, in: Capsule()).padding(7)
+            Button(action: cancel) {
+                Image(systemName: "xmark").font(.system(size: 11, weight: .semibold))
+                    .frame(width: 30, height: 30)
+                    .background(FlypeDesign.ink.opacity(hovering ? 0.14 : 0.07), in: Circle())
+                    .contentShape(Circle())
+            }.buttonStyle(.plain).foregroundStyle(FlypeDesign.ink.opacity(hovering ? 1 : 0.68))
+                .onHover { hovering = $0 }
+                .help(L10n.text("Abbrechen"))
+                .accessibilityLabel(L10n.text("Abbrechen"))
+                .opacity(state.canCancel ? 1 : 0)
+                .disabled(!state.canCancel)
+        }.padding(.leading, 20).padding(.trailing, 18).padding(.vertical, 14)
+            .background(FlypeDesign.surface, in: Capsule()).padding(7).fixedSize()
+    }
+    private func labels(_ title: String, detail: String, shown: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(L10n.text(title)).font(.system(size: 14, weight: .medium))
+            Text(detail).font(.system(size: 11)).foregroundStyle(.secondary)
+        }
+        .opacity(shown ? 1 : 0)
+        .accessibilityElement(children: .combine)
+        .accessibilityHidden(!shown)
     }
 }

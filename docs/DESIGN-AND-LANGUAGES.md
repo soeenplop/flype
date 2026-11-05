@@ -2,7 +2,7 @@
 
 iPhone, iPad and Mac share one structure: **Start, Words, Settings**. The account is reached through the profile or Settings. Warm neutral surfaces, the system font, a purple accent and shared terms connect both apps. Colors follow the system appearance, and the dark variant uses a lighter accent so controls stay readable.
 
-On iPhone, transcribing stays a keyboard feature. The start page holds setup, standby and a real test area, but no second regular recording flow. On Mac, you hold the key to speak and release to insert. The button on the start page runs a local test, and test text is not sent to another app. The floating indicator shows the recording, the language and a round stop outline that reacts to your voice.
+On iPhone, transcribing stays a keyboard feature. The start page holds setup, standby and a real test area, but no second regular recording flow. On Mac, you hold the key to speak and release to insert. The button on the start page runs a local test, and test text is not sent to another app. The floating indicator shows the recording, the language, a round outline that reacts to your voice and a round button that cancels. See [Recording start](RECORDING-START.md#cancelling).
 
 The iOS app is universal and uses the adaptive sidebar on iPad. On wide iPads, the keyboard gets a number row and extra native function keys. Narrow layouts stay compact.
 

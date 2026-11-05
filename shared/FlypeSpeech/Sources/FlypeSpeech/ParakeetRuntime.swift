@@ -4,17 +4,28 @@ import Foundation
 
 public actor ParakeetRuntime {
     private var inFlight = false
+    private var waiting: [CheckedContinuation<Void, Never>] = []
     private var manager: AsrManager?
     private var loadedDirectory: URL?
     public init() {
         AppLogger.minimumLevel = .fault
         AppLogger.mirrorsToConsole = false
     }
-    public func prepare(directory: URL) async throws {
-        guard !inFlight else { throw CocoaError(.coderInvalidValue) }
-        if manager != nil, loadedDirectory == directory { return }
+    /// A cancelled run ends at its next checkpoint, so a new recording waits for it instead of failing.
+    private func acquire() async {
+        while inFlight { await withCheckedContinuation { waiting.append($0) } }
         inFlight = true
-        defer { inFlight = false }
+    }
+    private func release() {
+        inFlight = false
+        let waiters = waiting
+        waiting = []
+        for waiter in waiters { waiter.resume() }
+    }
+    public func prepare(directory: URL) async throws {
+        await acquire()
+        defer { release() }
+        if manager != nil, loadedDirectory == directory { return }
         try Task.checkCancellation()
         #if targetEnvironment(simulator)
             // The simulator does not provide the Neural Engine.
@@ -36,10 +47,9 @@ public actor ParakeetRuntime {
         loadedDirectory = directory
     }
     public func transcribe(file: URL) async throws -> String {
-        guard !inFlight else { throw CocoaError(.coderInvalidValue) }
+        await acquire()
+        defer { release() }
         guard let manager else { throw CocoaError(.fileReadNoSuchFile) }
-        inFlight = true
-        defer { inFlight = false }
         try Task.checkCancellation()
         var state = TdtDecoderState.make(decoderLayers: await manager.decoderLayerCount)
         // SDK converts through AVAudioConverter to 16 kHz mono Float32 and handles long files.
@@ -48,9 +58,8 @@ public actor ParakeetRuntime {
         return result.text
     }
     public func unload() async throws {
-        guard !inFlight else { throw CocoaError(.userCancelled) }
-        inFlight = true
-        defer { inFlight = false }
+        await acquire()
+        defer { release() }
         await manager?.cleanup()
         manager = nil
         loadedDirectory = nil

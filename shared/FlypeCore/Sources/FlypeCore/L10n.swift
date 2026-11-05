@@ -1620,13 +1620,6 @@ public enum L10n {
             "Vuelve a tu app y detén la grabación en el teclado Flype.",
             "Ga terug naar je app en stop de opname in het Flype-toetsenbord.",
         ],
-        "Aufnahme verwerfen": [
-            "Discard Recording",
-            "Abandonner l’enregistrement",
-            "Annulla registrazione",
-            "Descartar grabación",
-            "Opname weggooien",
-        ],
         "Nächste Tastatur": [
             "Next Keyboard",
             "Clavier suivant",
@@ -2116,6 +2109,20 @@ public enum L10n {
             "Riavvia la trascrizione nella tastiera.",
             "Vuelve a iniciar la transcripción en el teclado.",
             "Start de transcriptie opnieuw in het toetsenbord.",
+        ],
+        "Sprache wird erkannt": [
+            "Recognizing speech",
+            "Reconnaissance de la voix",
+            "Riconoscimento del parlato",
+            "Reconociendo la voz",
+            "Spraak herkennen",
+        ],
+        "Wird bereinigt": [
+            "Polishing text",
+            "Amélioration du texte",
+            "Revisione del testo",
+            "Puliendo el texto",
+            "Tekst verzorgen",
         ],
         "Text einfügen": [
             "Insert Text",

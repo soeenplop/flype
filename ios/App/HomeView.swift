@@ -328,12 +328,14 @@ struct HomeView: View {
                     )
                 )
                 .font(.footnote).foregroundStyle(.secondary)
-                Button(
-                    L10n.text(dictation.phase == .recording ? "Aufnahme verwerfen" : "Mikrofon ausschalten"),
-                    role: .destructive
-                ) { dictation.endSession() }
-                .font(.subheadline.weight(.medium))
-                .padding(.vertical, 4)
+                if dictation.busy {
+                    Button(L10n.text("Abbrechen"), role: .cancel) { dictation.discardCurrent() }
+                        .font(.subheadline.weight(.medium))
+                        .padding(.vertical, 4)
+                }
+                Button(L10n.text("Mikrofon ausschalten"), role: .destructive) { dictation.endSession() }
+                    .font(.subheadline.weight(.medium))
+                    .padding(.vertical, 4)
             } else if dictation.busy {
                 Button(L10n.text("Abbrechen"), role: .cancel) { dictation.cancel() }.font(.subheadline)
             }

@@ -2,7 +2,11 @@ import Darwin
 import Foundation
 
 public struct VoiceSessionState: Codable, Sendable {
-    public enum Phase: String, Codable, Sendable { case ready, preparing, recording, processing }
+    public enum Phase: String, Codable, Sendable {
+        case ready, preparing, recording, processing, cleaning
+        /// Text is on its way, and no recording is running.
+        public var isWorking: Bool { self == .preparing || self == .processing || self == .cleaning }
+    }
     public let id: UUID
     public let phase: Phase
     public let dictationID: UUID?
@@ -27,7 +31,7 @@ public struct VoiceSessionState: Codable, Sendable {
 }
 
 public struct VoiceSessionCommand: Codable, Sendable {
-    public enum Action: String, Codable, Sendable { case start, stop, end }
+    public enum Action: String, Codable, Sendable { case start, stop, end, cancel }
     public let sessionID: UUID
     public let requestID: UUID
     public let action: Action
@@ -67,9 +71,11 @@ public final class VoiceSessionStore: @unchecked Sendable {
             guard current?.id == command.sessionID, current?.isAlive(at: now) == true else {
                 throw ResultStore.StoreError.unavailable
             }
-            // Never replace an unprocessed button press with another press.
+            // Never replace an unprocessed button press with another press. Only cancelling outranks one,
+            // so that stopping and then cancelling right away never inserts the text.
             let existing: VoiceSessionCommand? = try read("command")
-            guard existing == nil || now.timeIntervalSince(existing!.createdAt) >= 5 else { return }
+            guard existing == nil || command.action == .cancel || now.timeIntervalSince(existing!.createdAt) >= 5
+            else { return }
             try write(command, name: "command")
         }
     }

@@ -60,6 +60,8 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private var startRequest: KeyboardStartRequest?
     private var resolvedHostID: String?
     private var voiceSession: VoiceSessionState?
+    /// The app sees a cancel up to 250 ms later, so its status and result for this ID are already out of date.
+    private var cancelledRequestID: UUID?
     private var commandSentAt: Date?
     private var pendingStartID: UUID?
     private var insertionPermit: KeyboardInsertionPermit?
@@ -249,6 +251,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         ])
         recordingView.isHidden = true
         recordingView.stopButton.addTarget(self, action: #selector(stopFromLevelView), for: .touchUpInside)
+        recordingView.cancelButton.addTarget(self, action: #selector(cancelFromLevelView), for: .touchUpInside)
         keyPreview.font = .systemFont(ofSize: 30)
         keyPreview.textAlignment = .center
         keyPreview.textColor = .label
@@ -296,13 +299,52 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
 
     @objc private func stopFromLevelView() { controlSession() }
 
+    /// Never debounced: stopping and then cancelling right away must not insert the text.
+    @objc private func cancelFromLevelView() {
+        guard hasFullAccess, let session = voiceSession, let requestID = session.dictationID else { return }
+        cancelledRequestID = requestID
+        try? KeyboardInsertionPermitStore.shared().clear(requestID: requestID)
+        insertionPermit = nil
+        pendingStartID = nil
+        startRequest = nil
+        do {
+            try VoiceSessionStore.shared().send(
+                VoiceSessionCommand(sessionID: session.id, requestID: requestID, action: .cancel))
+            commandSentAt = Date()
+            voiceSession = visibleSession(session)
+        } catch {
+            voiceSession = nil
+            commandSentAt = nil
+        }
+        if let pending, pending.keyboardRequestID == requestID { discard(pending) }
+        // Without sight, the keys coming back would be no feedback at all.
+        UIAccessibility.post(
+            notification: .announcement, argument: L10n.text("Abgebrochen. Die Aufnahme wurde gelöscht."))
+        try? refreshLaunchRequest()
+        updateMicrophone()
+        updateAppearance()
+    }
+
+    private func visibleSession(_ session: VoiceSessionState?) -> VoiceSessionState? {
+        guard let session, let cancelledRequestID, session.phase != .ready, session.dictationID == cancelledRequestID
+        else { return session }
+        return VoiceSessionState(id: session.id, phase: .ready, dictationID: nil, now: session.updatedAt)
+    }
+
+    private func discard(_ result: DictationResult) {
+        _ = try? ResultStore.shared().claim(id: result.id)
+        pending = nil
+    }
+
     @objc private func refreshMeter() {
         guard isVisible, hasFullAccess else {
             meterTimer?.invalidate()
             return
         }
         do {
-            guard let state = try VoiceSessionStore.shared().state(), state.phase == .recording else {
+            guard let state = try VoiceSessionStore.shared().state(), state.phase == .recording,
+                state.dictationID != cancelledRequestID
+            else {
                 meterTimer?.invalidate()
                 meterTimer = nil
                 refresh()
@@ -319,8 +361,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
 
     private func updateRecordingView() {
         let recording = voiceSession?.phase == .recording && hasFullAccess
-        let processing =
-            (voiceSession?.phase == .processing || voiceSession?.phase == .preparing) && hasFullAccess
+        let processing = voiceSession?.phase.isWorking == true && hasFullAccess
         let keyHeight: CGFloat = usesTabletLayout ? 290 : 216
         let desiredHeight: CGFloat =
             recording || processing ? (usesTabletLayout ? 290 : 216) : keyHeight + (suggestionBar.isHidden ? 0 : 46)
@@ -331,7 +372,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         }
         root.isHidden = recording || processing
         recordingView.isHidden = !(recording || processing)
-        recordingView.showsProgress = processing
+        if let phase = voiceSession?.phase, recording || processing { recordingView.show(phase: phase) }
         if recording, let voiceSession {
             recordingView.update(voiceSession)
             if isVisible, meterTimer?.isValid != true {
@@ -436,8 +477,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
 
     private func updateLanguageMenu() {
         guard let spaceButton else { return }
-        let locked =
-            voiceSession?.phase == .recording || voiceSession?.phase == .processing || voiceSession?.phase == .preparing
+        let locked = voiceSession?.phase == .recording || voiceSession?.phase.isWorking == true
         let state = "\(language.rawValue)/\(FlypeLanguage.interface().rawValue)/\(locked)"
         guard languageMenuState != state || spaceButton.menu == nil else { return }
         languageMenuState = state
@@ -1070,7 +1110,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         guard !isInserting, hasFullAccess else { return }
         do {
             if let failure = snapshot.failure { throw failure }
-            voiceSession = snapshot.voiceSession
+            voiceSession = visibleSession(snapshot.voiceSession)
             if let pendingStartID,
                 voiceSession?.dictationID == pendingStartID
                     || commandSentAt.map({ Date().timeIntervalSince($0) >= 5 }) == true
@@ -1081,6 +1121,9 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             try refreshLaunchRequest()
             updateMicrophone()
             pending = snapshot.pending
+            if let cancelledRequestID, let pending, pending.keyboardRequestID == cancelledRequestID {
+                discard(pending)
+            }
             lastError = nil
 
         } catch {
@@ -1095,8 +1138,8 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         }
         if isVisible, let documentID = currentDocumentID {
             let activeRequest =
-                (voiceSession?.phase == .recording || voiceSession?.phase == .processing
-                    || voiceSession?.phase == .preparing) ? voiceSession?.dictationID : nil
+                (voiceSession?.phase == .recording || voiceSession?.phase.isWorking == true)
+                ? voiceSession?.dictationID : nil
             let previous = insertionPermit
             insertionPermit?.observe(
                 documentID: documentID, activeRequestID: activeRequest, completedRequestID: pending?.keyboardRequestID)

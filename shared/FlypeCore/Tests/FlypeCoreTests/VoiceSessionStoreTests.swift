@@ -107,4 +107,37 @@ final class VoiceSessionStoreTests: XCTestCase {
         XCTAssertEqual(reads, 3)
     }
 
+    func testCancelReplacesAnUnprocessedStop() throws {
+        try withStore { store in
+            let id = UUID()
+            let requestID = UUID()
+            let now = Date()
+            try store.publish(VoiceSessionState(id: id, phase: .recording, dictationID: requestID, now: now))
+            try store.send(VoiceSessionCommand(sessionID: id, requestID: requestID, action: .stop, now: now), now: now)
+            try store.send(
+                VoiceSessionCommand(sessionID: id, requestID: requestID, action: .cancel, now: now), now: now)
+            XCTAssertEqual(try store.claim(sessionID: id, now: now)?.action, .cancel)
+        }
+    }
+
+    func testStopNeverReplacesAnUnprocessedCancel() throws {
+        try withStore { store in
+            let id = UUID()
+            let requestID = UUID()
+            let now = Date()
+            try store.publish(VoiceSessionState(id: id, phase: .recording, dictationID: requestID, now: now))
+            try store.send(
+                VoiceSessionCommand(sessionID: id, requestID: requestID, action: .cancel, now: now), now: now)
+            try store.send(VoiceSessionCommand(sessionID: id, requestID: requestID, action: .stop, now: now), now: now)
+            XCTAssertEqual(try store.claim(sessionID: id, now: now)?.action, .cancel)
+        }
+    }
+
+    func testOnlyTextPhasesCountAsWorking() {
+        XCTAssertTrue(VoiceSessionState.Phase.preparing.isWorking)
+        XCTAssertTrue(VoiceSessionState.Phase.processing.isWorking)
+        XCTAssertTrue(VoiceSessionState.Phase.cleaning.isWorking)
+        XCTAssertFalse(VoiceSessionState.Phase.ready.isWorking)
+        XCTAssertFalse(VoiceSessionState.Phase.recording.isWorking)
+    }
 }

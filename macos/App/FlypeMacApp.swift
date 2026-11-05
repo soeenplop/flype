@@ -63,6 +63,7 @@ struct FlypeMacApp: App {
                         format: L10n.text("Halte %@ beim Sprechen."),
                         (DictationKey(keyCode: dictationKey) ?? .rightCommand).name))
             if dictation.recording { Button(L10n.text("Transkription beenden")) { dictation.finish() } }
+            if dictation.canCancel { Button(L10n.text("Abbrechen")) { dictation.cancel() } }
             Button(L10n.text("Flype öffnen")) {
                 openWindow(id: "main")
                 NSApp.activate(ignoringOtherApps: true)
@@ -211,7 +212,7 @@ private struct MacHomeView: View {
                     if dictation.busy { ProgressView().controlSize(.small) }
                     Text(L10n.text(dictation.status)).font(.subheadline)
                     Spacer()
-                    Button(L10n.text("Abbrechen")) { dictation.cancel() }
+                    Button(L10n.text("Abbrechen")) { dictation.cancel() }.disabled(!dictation.canCancel)
                 }
             } else if !dictation.result.isEmpty || practice {
                 VStack(alignment: .leading, spacing: 10) {

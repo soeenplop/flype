@@ -383,6 +383,45 @@ final class DictationController: NSObject, ObservableObject {
         status = "Abgebrochen. Die Aufnahme wurde gelöscht."
     }
 
+    /// Discards only this transcription. The microphone stays ready, so the next one needs no app switch.
+    func discardCurrent() {
+        guard sessionActive else {
+            cancel()
+            return
+        }
+        operationID = UUID()
+        watchdog?.cancel()
+        watchdog = nil
+        work?.cancel()
+        work = nil
+        preparation?.cancel()
+        preparation = nil
+        cleanupTask?.cancel()
+        cleanupTask = nil
+        dictionaryTask?.cancel()
+        dictionaryTask = nil
+        ticker?.cancel()
+        recorder?.finishSegment()
+        let activeEngine = engine
+        engine = nil
+        if let activeEngine { Task { await activeEngine.cancel() } }
+        removeAudio()
+        // The result may have been published just before the keyboard's command arrived.
+        if published { try? ResultStore.shared().clear() }
+        transcript = ""
+        rawTranscript = ""
+        cleanupNotice = nil
+        notice = nil
+        published = false
+        startedFromKeyboard = false
+        keyboardRequestID = nil
+        elapsed = 0
+        inputLevel = 0
+        phase = .idle
+        status = "Abgebrochen. Die Aufnahme wurde gelöscht."
+        publishSession()
+    }
+
     func endSession() {
         stopWork()
         Task { try? await ParakeetSpeechEngine.unload() }
@@ -488,6 +527,10 @@ final class DictationController: NSObject, ObservableObject {
                                 self.keyboardRequestID = command.requestID
                                 self.finish()
                             }
+                        case .cancel:
+                            if command.requestID == (self.keyboardRequestID ?? self.operationID) {
+                                self.discardCurrent()
+                            }
                         case .end:
                             self.endSession()
                             return
@@ -522,7 +565,8 @@ final class DictationController: NSObject, ObservableObject {
         switch phase {
         case .preparing: state = .preparing
         case .recording: state = .recording
-        case .transcribing, .cleaning: state = .processing
+        case .transcribing: state = .processing
+        case .cleaning: state = .cleaning
         default: state = .ready
         }
         try? VoiceSessionStore.shared().publish(

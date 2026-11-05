@@ -13,13 +13,13 @@ struct DictationLaunchLink: View {
                 Button {
                     action?()
                 } label: {
-                    if session.phase == .processing || session.phase == .preparing {
+                    if session.phase.isWorking {
                         ProgressView().tint(Color(uiColor: .label))
                     } else {
                         Image(systemName: session.phase == .recording ? "waveform" : "mic.fill")
                     }
                 }
-                .disabled(session.phase == .processing || session.phase == .preparing)
+                .disabled(session.phase.isWorking)
                 .accessibilityLabel(
                     L10n.text(
                         session.phase == .recording

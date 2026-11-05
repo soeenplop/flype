@@ -2,41 +2,89 @@ import FlypeCore
 import UIKit
 
 /// Fixed stop square inside a circle; only the outer contour reacts to sound.
-/// A spinner takes its place while the text is being prepared.
+/// A spinner takes its place while the text is being prepared. Cancelling keeps its place in both.
 final class RecordingLevelView: UIView {
     private let control = ReactiveStopButton(frame: .zero)
     private let spinner = UIActivityIndicatorView(style: .large)
-    var stopButton: UIButton { control }
-    var showsProgress = false {
-        didSet {
-            control.isHidden = showsProgress
-            if showsProgress { spinner.startAnimating() } else { spinner.stopAnimating() }
+    private let cancelControl: UIButton = {
+        var configuration = UIButton.Configuration.plain()
+        configuration.baseForegroundColor = KeyboardKeyAppearance.foreground
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14)
+        configuration.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer {
+            var attributes = $0
+            attributes.font = .systemFont(ofSize: 15, weight: .medium)
+            return attributes
         }
-    }
+        return UIButton(configuration: configuration)
+    }()
+    private let listening = UILabel()
+    private let duration = UILabel()
+    private let working = UILabel()
+    private let stage = UILabel()
+    var stopButton: UIButton { control }
+    var cancelButton: UIButton { cancelControl }
     private var dictationID: UUID?
     private var lastSample: Date?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        addSubview(control)
-        addSubview(spinner)
         spinner.hidesWhenStopped = true
         spinner.color = KeyboardKeyAppearance.accent
-        spinner.isAccessibilityElement = true
-        spinner.accessibilityLabel = L10n.text("Dein Text entsteht …")
-        control.translatesAutoresizingMaskIntoConstraints = false
-        spinner.translatesAutoresizingMaskIntoConstraints = false
+        for label in [listening, working] {
+            label.font = .systemFont(ofSize: 14, weight: .medium)
+            label.textColor = KeyboardKeyAppearance.foreground
+        }
+        for label in [duration, stage] {
+            label.font = .monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+            label.textColor = .secondaryLabel
+        }
+        let workingStack = UIStackView(arrangedSubviews: [spinner, working, stage])
+        workingStack.axis = .vertical
+        workingStack.alignment = .center
+        workingStack.spacing = 6
+        workingStack.setCustomSpacing(12, after: spinner)
+        workingStack.isUserInteractionEnabled = false
+        let views: [UIView] = [control, workingStack, cancelControl, listening, duration]
+        for view in views {
+            addSubview(view)
+            view.translatesAutoresizingMaskIntoConstraints = false
+        }
         NSLayoutConstraint.activate([
-            spinner.centerXAnchor.constraint(equalTo: centerXAnchor),
-            spinner.centerYAnchor.constraint(equalTo: centerYAnchor),
+            cancelControl.leadingAnchor.constraint(equalTo: leadingAnchor),
+            cancelControl.topAnchor.constraint(equalTo: topAnchor),
+            cancelControl.heightAnchor.constraint(equalToConstant: 44),
+            listening.centerXAnchor.constraint(equalTo: centerXAnchor),
+            listening.centerYAnchor.constraint(equalTo: cancelControl.centerYAnchor),
+            listening.leadingAnchor.constraint(greaterThanOrEqualTo: cancelControl.trailingAnchor, constant: 4),
+            duration.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
+            duration.centerYAnchor.constraint(equalTo: cancelControl.centerYAnchor),
             control.centerXAnchor.constraint(equalTo: centerXAnchor),
-            control.centerYAnchor.constraint(equalTo: centerYAnchor),
+            control.centerYAnchor.constraint(equalTo: centerYAnchor, constant: 18),
             control.widthAnchor.constraint(equalToConstant: 144),
             control.heightAnchor.constraint(equalToConstant: 144),
+            workingStack.centerXAnchor.constraint(equalTo: centerXAnchor),
+            workingStack.centerYAnchor.constraint(equalTo: centerYAnchor, constant: 18),
+            workingStack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 14),
         ])
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func show(phase: VoiceSessionState.Phase) {
+        let isWorking = phase.isWorking
+        control.isHidden = isWorking
+        listening.isHidden = isWorking
+        duration.isHidden = isWorking
+        working.isHidden = !isWorking
+        stage.isHidden = !isWorking
+        if isWorking { spinner.startAnimating() } else { spinner.stopAnimating() }
+        cancelControl.setTitle(L10n.text("Abbrechen"), for: .normal)
+        listening.text = L10n.text("Ich höre zu …")
+        working.text = L10n.text("Dein Text entsteht …")
+        stage.text = L10n.text(
+            phase == .preparing
+                ? "Flype wird vorbereitet" : phase == .cleaning ? "Wird bereinigt" : "Sprache wird erkannt")
+    }
 
     func update(_ session: VoiceSessionState) {
         if dictationID != session.dictationID {
@@ -48,6 +96,9 @@ final class RecordingLevelView: UIView {
         lastSample = session.updatedAt
         let value = session.inputLevel ?? 0
         control.level = value.isFinite ? min(1, max(0, value)) : 0
+        let seconds = Int(session.recordingDuration ?? 0)
+        let text = String(format: "%d:%02d", seconds / 60, seconds % 60)
+        if duration.text != text { duration.text = text }
     }
 }
 

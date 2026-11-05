@@ -45,6 +45,9 @@ final class GlobalShortcut {
     private var eventTap: CFMachPort?
     private var eventTapSource: CFRunLoopSource?
     private var plainKeyHeld = false
+    /// Its key release has to disappear too, even if cancelling has already ended by then.
+    private var escapeTaken = false
+    private var cancelHotKeys: [EventHotKeyRef] = []
     private var keyObserver: NSObjectProtocol?
     /// True while the settings wait for a new key, so pressing it does not start dictation.
     var paused = false {
@@ -55,6 +58,15 @@ final class GlobalShortcut {
     var onRelease: (() -> Void)?
     var onCancel: (() -> Void)?
     var onUserInteraction: (() -> Void)?
+    var onCancelKey: (() -> Void)?
+    /// Esc belongs to Flype only while the capsule offers cancelling. Otherwise it reaches the app in front.
+    var cancelKeyActive = false {
+        didSet {
+            guard cancelKeyActive != oldValue else { return }
+            updateFilter()
+            updateCancelHotKeys()
+        }
+    }
 
     func start() -> Bool {
         if MacEnvironment.isSandboxed { return startHotKey() }
@@ -102,8 +114,15 @@ final class GlobalShortcut {
                 guard let event, let context else { return OSStatus(eventNotHandledErr) }
                 let shortcut = Unmanaged<GlobalShortcut>.fromOpaque(context).takeUnretainedValue()
                 let pressed = GetEventKind(event) == UInt32(kEventHotKeyPressed)
+                var id = EventHotKeyID()
+                GetEventParameter(
+                    event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil,
+                    MemoryLayout<EventHotKeyID>.size, nil, &id)
+                let isDictationKey = id.id == 1
                 MainActor.assumeIsolated {
-                    if pressed {
+                    if !isDictationKey {
+                        if pressed { shortcut.onCancelKey?() }
+                    } else if pressed {
                         shortcut.onArm?()
                         shortcut.onPress?()
                     } else {
@@ -122,9 +141,30 @@ final class GlobalShortcut {
         }
         return true
     }
+    /// Without Accessibility there is no event tap, so these exist only while cancelling is possible.
+    private func updateCancelHotKeys() {
+        for reference in cancelHotKeys { UnregisterEventHotKey(reference) }
+        cancelHotKeys = []
+        guard cancelKeyActive, hotKey != nil else { return }
+        // The dictation modifiers are still down during a recording, and no longer during processing.
+        for (index, modifiers) in [UInt32(0), UInt32(controlKey | optionKey)].enumerated() {
+            var reference: EventHotKeyRef?
+            let id = EventHotKeyID(signature: OSType(0x464C_5950), id: UInt32(index) + 2)
+            if RegisterEventHotKey(UInt32(kVK_Escape), modifiers, id, GetApplicationEventTarget(), 0, &reference)
+                == noErr, let reference
+            {
+                cancelHotKeys.append(reference)
+            }
+        }
+    }
     private func handle(_ event: NSEvent, local: Bool) {
         if event.cgEvent?.getIntegerValueField(.eventSourceUserData) == TextDestination.insertionEventTag { return }
         if paused { return }
+        // Only reached if the event tap could not take the key. It is no user action either way.
+        if cancelKeyActive, event.type == .keyDown, event.keyCode == UInt16(kVK_Escape) {
+            onCancelKey?()
+            return
+        }
         // The chosen key is no user action, whether or not the filter has already taken it.
         if !key.isModifier, event.type == .keyDown, event.keyCode == key.keyCode,
             plainKeyHeld || event.modifierFlags.rawValue & DictationKey.allModifiers == 0
@@ -177,6 +217,7 @@ final class GlobalShortcut {
             if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
             return event
         }
+        if takesEscape(type, event) { return nil }
         guard !paused, !key.isModifier, event.getIntegerValueField(.keyboardEventKeycode) == Int64(key.keyCode),
             event.getIntegerValueField(.eventSourceUserData) != TextDestination.insertionEventTag
         else { return event }
@@ -194,6 +235,35 @@ final class GlobalShortcut {
         plainKeyHeld = true
         setHeld(true, otherModifier: false)
         return nil
+    }
+    private func takesEscape(_ type: CGEventType, _ event: CGEvent) -> Bool {
+        guard event.getIntegerValueField(.keyboardEventKeycode) == Int64(kVK_Escape),
+            event.getIntegerValueField(.eventSourceUserData) != TextDestination.insertionEventTag
+        else { return false }
+        if type == .keyUp {
+            guard escapeTaken else { return false }
+            escapeTaken = false
+            updateFilter()
+            return true
+        }
+        // Key repeats of a press that has already cancelled must not reach the app either.
+        if escapeTaken { return true }
+        // ⌘⌥Esc stays Force Quit.
+        guard cancelKeyActive, !paused, !event.flags.isSuperset(of: [.maskCommand, .maskAlternate]) else {
+            return false
+        }
+        escapeTaken = true
+        onCancelKey?()
+        return true
+    }
+    /// A chosen plain key always needs the tap. A modifier key needs it only while Esc belongs to Flype.
+    private func updateFilter() {
+        guard !MacEnvironment.isSandboxed, globalMonitor != nil else { return }
+        if !key.isModifier || cancelKeyActive || escapeTaken {
+            _ = startFilter()
+        } else {
+            stopFilter()
+        }
     }
     private func startFilter() -> Bool {
         if eventTap != nil { return true }
@@ -231,7 +301,7 @@ final class GlobalShortcut {
         holdTask = nil
         plainKeyHeld = false
         key = chosen
-        if key.isModifier { stopFilter() } else { _ = startFilter() }
+        updateFilter()
     }
     private func deliver(_ action: DictationShortcut.Action?) {
         switch action {
@@ -243,6 +313,9 @@ final class GlobalShortcut {
         }
     }
     func stop() {
+        for reference in cancelHotKeys { UnregisterEventHotKey(reference) }
+        cancelHotKeys = []
+        escapeTaken = false
         if let hotKey { UnregisterEventHotKey(hotKey) }
         hotKey = nil
         if let hotKeyHandler { RemoveEventHandler(hotKeyHandler) }
