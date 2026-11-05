@@ -974,15 +974,15 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             bottom.addArrangedSubview(globe)
             globe.widthAnchor.constraint(equalTo: mode.widthAnchor).isActive = true
         }
-        bottom.addArrangedSubview(space)
-        insert.removeFromSuperview()
-        bottom.addArrangedSubview(insert)
         if let launchHost {
             launchHost.view.removeFromSuperview()
             NSLayoutConstraint.deactivate(launchHost.view.constraints.filter { $0.firstAttribute == .width })
             bottom.addArrangedSubview(launchHost.view)
             launchHost.view.widthAnchor.constraint(equalTo: mode.widthAnchor).isActive = true
         }
+        bottom.addArrangedSubview(space)
+        insert.removeFromSuperview()
+        bottom.addArrangedSubview(insert)
         bottom.addArrangedSubview(enter)
         mode.widthAnchor.constraint(equalTo: bottom.widthAnchor, multiplier: 0.11).isActive = true
         enter.widthAnchor.constraint(equalTo: bottom.widthAnchor, multiplier: 0.22).isActive = true
