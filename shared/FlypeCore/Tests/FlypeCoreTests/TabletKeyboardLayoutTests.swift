@@ -13,14 +13,53 @@ final class TabletKeyboardLayoutTests: XCTestCase {
         }
     }
 
-    func testLettersKeepTheirLanguageOrderAndHaveOneCharacter() {
+    func testLettersKeepTheirLanguageOrder() {
         for language in FlypeLanguage.allCases {
             let layout = TabletKeyboardLayout.layout(for: language)
             let letters = [layout.top, layout.home, layout.bottom].map { row in
                 row.filter { $0.shifted == nil }.map(\.base).joined()
             }
-            XCTAssertEqual(letters, language.keyboardRows, "\(language)")
+            for (row, expected) in zip(letters, language.keyboardRows) {
+                XCTAssertTrue(row.hasPrefix(expected), "\(language): \(row)")
+            }
         }
+    }
+
+    func testDutchIsNotTheEnglishLayout() {
+        let dutch = TabletKeyboardLayout.layout(for: .nl)
+        XCTAssertTrue(dutch.isISO)
+        XCTAssertEqual(dutch.numbers.first, TabletKey("§", shifted: "±"))
+        XCTAssertEqual(dutch.bottom.first, TabletKey("`", shifted: "~"))
+        XCTAssertFalse(TabletKeyboardLayout.layout(for: .en).isISO)
+    }
+
+    func testCurrencyFollowsTheRegionOnEnglishOnly() {
+        XCTAssertEqual(TabletKeyboardLayout.layout(for: .en, usesEuro: true).numbers[4].shifted, "€")
+        XCTAssertEqual(TabletKeyboardLayout.layout(for: .en, usesEuro: false).numbers[4].shifted, "$")
+        XCTAssertEqual(TabletKeyboardLayout.layout(for: .nl, usesEuro: false).numbers[4].shifted, "€")
+        XCTAssertEqual(CompactTabletLayout.layout(for: .en, usesEuro: false).home[2].hint, "$")
+    }
+
+    func testCompactLayoutKeepsLettersAndFillsEverySymbolRow() {
+        for language in FlypeLanguage.allCases {
+            let layout = CompactTabletLayout.layout(for: language)
+            let hinted = [layout.top, layout.home].map { $0.map(\.base).joined() }
+            XCTAssertEqual(hinted, Array(language.keyboardRows.prefix(2)), "\(language)")
+            XCTAssertTrue(layout.bottom.map(\.base).joined().hasPrefix(language.keyboardRows[2]), "\(language)")
+            XCTAssertEqual(layout.symbolHome.count, layout.home.count, "\(language)")
+            XCTAssertEqual(layout.symbolBottom.count, layout.bottom.count, "\(language)")
+            XCTAssertEqual(layout.symbolTop.count, layout.top.count, "\(language)")
+            XCTAssertTrue((layout.top + layout.home + layout.bottom).allSatisfy { $0.upper != nil }, "\(language)")
+        }
+    }
+
+    func testCompactGermanMatchesTheNativeKeyboard() {
+        let layout = CompactTabletLayout.layout(for: .de)
+        XCTAssertEqual(layout.top.first, TabletKey("q", hint: "1"))
+        XCTAssertEqual(layout.top.last, TabletKey("ü", hint: "+"))
+        XCTAssertEqual(layout.home[2], TabletKey("d", hint: "€"))
+        XCTAssertEqual(layout.bottom[7], TabletKey(",", shifted: "!"))
+        XCTAssertEqual(layout.bottom.last, TabletKey("ß", hint: "-"))
     }
 
     func testGermanMatchesTheNativeKeyboard() {
