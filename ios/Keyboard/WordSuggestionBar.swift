@@ -10,6 +10,9 @@ final class WordSuggestionBar: UIControl {
     private let pressedBackground = UIView()
     private var pressedIndex: Int?
     private var words: [String] = []
+    /// The iPad keeps its words together in the middle of the row.
+    var sideInset: CGFloat = 0 { didSet { setNeedsLayout() } }
+    private var segmentWidth: CGFloat { (bounds.width - 2 * sideInset) / 3 }
 
     private final class CandidateAccessibilityElement: UIAccessibilityElement {
         var activate: (() -> Void)?
@@ -65,9 +68,9 @@ final class WordSuggestionBar: UIControl {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        let width = bounds.width / 3
+        let width = segmentWidth
         for index in 0..<3 {
-            let segment = CGRect(x: CGFloat(index) * width, y: 0, width: width, height: bounds.height)
+            let segment = CGRect(x: sideInset + CGFloat(index) * width, y: 0, width: width, height: bounds.height)
             // The label and highlight share the same vertical bounds, so UILabel
             // centers the word inside the full-size pressed background.
             labels[index].frame = segment.insetBy(dx: 6, dy: 0)
@@ -76,7 +79,7 @@ final class WordSuggestionBar: UIControl {
         let pixel = 1 / (window?.screen.scale ?? 3)
         for index in 0..<2 {
             separators[index].frame = CGRect(
-                x: CGFloat(index + 1) * width, y: (bounds.height - 21) / 2, width: pixel, height: 21)
+                x: sideInset + CGFloat(index + 1) * width, y: (bounds.height - 21) / 2, width: pixel, height: 21)
         }
         updatePressedBackground()
     }
@@ -84,7 +87,7 @@ final class WordSuggestionBar: UIControl {
     override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
         guard bounds.width > 0 else { return false }
         let point = touch.location(in: self)
-        let index = min(2, max(0, Int(point.x / (bounds.width / 3))))
+        let index = min(2, max(0, Int((point.x - sideInset) / segmentWidth)))
         guard words.indices.contains(index) else { return false }
         pressedIndex = index
         pressedBackground.isHidden = false
@@ -114,9 +117,8 @@ final class WordSuggestionBar: UIControl {
     }
     private func updatePressedBackground() {
         guard let pressedIndex else { return }
-        let segmentWidth = bounds.width / 3
         pressedBackground.frame = CGRect(
-            x: CGFloat(pressedIndex) * segmentWidth, y: 0,
+            x: sideInset + CGFloat(pressedIndex) * segmentWidth, y: 0,
             width: segmentWidth, height: bounds.height)
     }
 }

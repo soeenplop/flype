@@ -7,6 +7,7 @@ struct DictationLaunchLink: View {
     var session: VoiceSessionState? = nil
     var action: (() -> Void)? = nil
     var willOpen: ((URL) -> Bool)? = nil
+    var tablet = false
     var body: some View {
         Group {
             if let session {
@@ -39,8 +40,8 @@ struct DictationLaunchLink: View {
                 .accessibilityLabel(L10n.text("Mikrofon benötigt vollen Zugriff"))
             }
         }
-        .font(.system(size: 18))
-        .buttonStyle(KeyboardMicrophoneKeyStyle())
+        .font(.system(size: tablet ? 20 : 18))
+        .buttonStyle(KeyboardMicrophoneKeyStyle(tablet: tablet))
         .environment(
             \.openURL,
             OpenURLAction { requestedURL in
@@ -53,15 +54,22 @@ struct DictationLaunchLink: View {
 
 /// Matches the UIKit function keys while retaining the public SwiftUI Link.
 private struct KeyboardMicrophoneKeyStyle: ButtonStyle {
+    var tablet = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.leading, tablet ? 14 : 0)
+            .padding(.bottom, tablet ? 11 : 0)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: tablet ? .bottomLeading : .center)
             .foregroundStyle(Color(uiColor: KeyboardKeyAppearance.foreground))
             .background(
                 Color(
                     uiColor: configuration.isPressed
-                        ? KeyboardKeyAppearance.pressedSurface : KeyboardKeyAppearance.functionSurface),
-                in: RoundedRectangle(cornerRadius: KeyboardKeyAppearance.cornerRadius, style: .continuous)
+                        ? KeyboardKeyAppearance.pressedSurface
+                        : tablet ? KeyboardKeyAppearance.characterSurface : KeyboardKeyAppearance.functionSurface),
+                in: RoundedRectangle(
+                    cornerRadius: tablet
+                        ? KeyboardKeyAppearance.tabletCornerRadius : KeyboardKeyAppearance.cornerRadius,
+                    style: .continuous)
             )
             .contentShape(Rectangle())
             .shadow(color: .black.opacity(0.12), radius: 0, x: 0, y: 1)

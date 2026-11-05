@@ -8,6 +8,9 @@ final class KeyboardKeyButton: UIButton {
     var popupText: String?
     var alternateCharacter: String?
     var highlightChanged: ((KeyboardKeyButton, Bool) -> Void)?
+    /// The iPad's function keys carry their symbol in a lower corner.
+    enum GlyphCorner { case center, bottomLeading, bottomTrailing }
+    var glyphCorner = GlyphCorner.center { didSet { setNeedsLayout() } }
     override var isHighlighted: Bool {
         didSet {
             updateSurface()
@@ -28,6 +31,21 @@ final class KeyboardKeyButton: UIButton {
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     private func updateSurface() { backgroundColor = isHighlighted ? pressedSurface : normalSurface }
+    override func imageRect(forContentRect contentRect: CGRect) -> CGRect {
+        placed(super.imageRect(forContentRect: contentRect))
+    }
+    override func titleRect(forContentRect contentRect: CGRect) -> CGRect {
+        placed(super.titleRect(forContentRect: contentRect))
+    }
+    private func placed(_ rect: CGRect) -> CGRect {
+        let y = bounds.maxY - 11 - rect.height
+        switch glyphCorner {
+        case .center: return rect
+        case .bottomLeading: return CGRect(x: 14, y: y, width: rect.width, height: rect.height)
+        case .bottomTrailing:
+            return CGRect(x: bounds.maxX - 14 - rect.width, y: y, width: rect.width, height: rect.height)
+        }
+    }
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         (touchRegion ?? bounds).union(bounds.insetBy(dx: -6, dy: -6)).contains(point)
     }

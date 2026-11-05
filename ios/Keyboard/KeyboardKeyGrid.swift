@@ -31,6 +31,12 @@ final class KeyboardInputView: UIInputView {
 /// Visual spacing stays native; the touch targets fill the spaces between keys.
 final class KeyboardKeyGrid: UIStackView {
     static let hostedKeyTag = 8107
+    var didLayout: (() -> Void)?
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        didLayout?()
+    }
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         guard isUserInteractionEnabled, !isHidden, alpha > 0.01 else { return nil }
@@ -87,5 +93,54 @@ final class KeyboardKeyGrid: UIStackView {
                 CGRect(x: left, y: top, width: right - left, height: bottom - top), from: self)
         }
         return targets[index]
+    }
+}
+
+/// The L-shaped Return of ISO keyboards. Its two parts are ordinary keys in their rows, drawn clear on top of this.
+final class TabletReturnShape: UIView {
+    private let surface = UIView()
+    private let outline = CAShapeLayer()
+    var isPressed = false {
+        didSet {
+            surface.backgroundColor =
+                isPressed ? KeyboardKeyAppearance.pressedSurface : KeyboardKeyAppearance.characterSurface
+        }
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        isAccessibilityElement = false
+        surface.backgroundColor = KeyboardKeyAppearance.characterSurface
+        surface.layer.mask = outline
+        addSubview(surface)
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.12
+        layer.shadowOffset = CGSize(width: 0, height: 1)
+        layer.shadowRadius = 0
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    /// The upper part is wider than the lower one. Both end at the same right edge.
+    func update(upper: CGRect, lower: CGRect, radius: CGFloat) {
+        frame = upper.union(lower)
+        surface.frame = bounds
+        let offset = CGAffineTransform(translationX: -frame.minX, y: -frame.minY)
+        let upper = upper.applying(offset)
+        let lower = lower.applying(offset)
+        let corners = [
+            CGPoint(x: upper.minX, y: upper.minY), CGPoint(x: upper.maxX, y: upper.minY),
+            CGPoint(x: upper.maxX, y: lower.maxY), CGPoint(x: lower.minX, y: lower.maxY),
+            CGPoint(x: lower.minX, y: upper.maxY), CGPoint(x: upper.minX, y: upper.maxY),
+        ]
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: upper.minX, y: upper.midY))
+        for index in corners.indices {
+            path.addArc(
+                tangent1End: corners[index], tangent2End: corners[(index + 1) % corners.count], radius: radius)
+        }
+        path.closeSubpath()
+        outline.path = path
+        layer.shadowPath = path
     }
 }

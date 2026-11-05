@@ -14,6 +14,12 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private var languageMenuState: String?
     private var language = FlypeLanguage.recognition()
     private var tabletLayout = false
+    private var tabletBuiltWidth: CGFloat = 0
+    private var suggestionHeight: NSLayoutConstraint?
+    private let tabletReturnShape = TabletReturnShape()
+    private weak var capsLockButton: UIButton?
+    /// Auto-capitalization must not turn a tapped 1 into a !, so only a pressed Shift selects the upper character.
+    private var shiftPressed = false
     private var usesTabletLayout: Bool { traitCollection.userInterfaceIdiom == .pad && view.bounds.width > 650 }
     private let suggestionBar = WordSuggestionBar()
     private let wordSuggestions = WordSuggestions()
@@ -76,6 +82,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private struct RenderedMicrophone: Equatable {
         var url: URL?
         var phase: VoiceSessionState.Phase?
+        var tablet = false
     }
     private var renderedMicrophone = RenderedMicrophone()
     private weak var renderedReturnButton: UIButton?
@@ -233,6 +240,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         let suggestionHeight = suggestionBar.heightAnchor.constraint(equalToConstant: 44)
         suggestionHeight.priority = .init(999)
         suggestionHeight.isActive = true
+        self.suggestionHeight = suggestionHeight
         suggestionBar.onBegin = { [weak self] index in self?.beginSuggestionSelection(at: index) }
         suggestionBar.onSelect = { [weak self] index in self?.acceptSuggestion(at: index) }
         suggestionBar.onCancel = { [weak self] in self?.cancelSuggestionSelection() }
@@ -274,7 +282,9 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        if tabletLayout != usesTabletLayout || showsInputModeSwitchKey != needsInputModeSwitchKey {
+        if tabletLayout != usesTabletLayout || showsInputModeSwitchKey != needsInputModeSwitchKey
+            || (usesTabletLayout && tabletBuiltWidth != view.bounds.width)
+        {
             tabletLayout = usesTabletLayout
             showsInputModeSwitchKey = needsInputModeSwitchKey
             buildKeys()
@@ -362,9 +372,10 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private func updateRecordingView() {
         let recording = voiceSession?.phase == .recording && hasFullAccess
         let processing = voiceSession?.phase.isWorking == true && hasFullAccess
-        let keyHeight: CGFloat = usesTabletLayout ? 290 : 216
+        let keyHeight: CGFloat = usesTabletLayout ? tabletKeysHeight : 216
+        let barHeight = (suggestionHeight?.constant ?? 44) + 2
         let desiredHeight: CGFloat =
-            recording || processing ? (usesTabletLayout ? 290 : 216) : keyHeight + (suggestionBar.isHidden ? 0 : 46)
+            recording || processing ? keyHeight : keyHeight + (suggestionBar.isHidden ? 0 : barHeight)
         if heightConstraint?.constant != desiredHeight {
             heightConstraint?.constant = desiredHeight
             preferredContentSize = CGSize(width: view.bounds.width, height: desiredHeight)
@@ -396,9 +407,17 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             child.removeFromSuperview()
         }
         rows.distribution = .fillEqually
-        rows.spacing = usesTabletLayout ? 7 : 10
-        if usesTabletLayout && !symbols {
+        tabletReturnShape.removeFromSuperview()
+        rows.didLayout = nil
+        capsLockButton = nil
+        rows.spacing = usesTabletLayout ? tabletGap : 10
+        suggestionBar.sideInset = usesTabletLayout ? view.bounds.width * 0.26 : 0
+        // iOS adds its own row with undo, redo and paste above any keyboard on iPad, so this one stays low.
+        suggestionHeight?.constant = usesTabletLayout ? 40 : 44
+        if usesTabletLayout {
+            tabletBuiltWidth = view.bounds.width
             buildTabletKeys()
+            updateMicrophone()
             return
         }
         let letters = language.keyboardRows.map(Array.init)
@@ -499,66 +518,253 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             })
     }
 
-    private func buildTabletKeys() {
-        let numberRow = makeRow()
-        for character in Array("1234567890").map(String.init) + (language == .de ? ["ß"] : []) {
-            let button = key(character)
-            configureAlternates(on: button, character: character)
-            button.addAction(UIAction { [weak self] _ in self?.type(character) }, for: .touchUpInside)
-            numberRow.addArrangedSubview(button)
+    // The grid of the native 12.9-inch keyboard, measured on a row 1428 units wide and scaled to fit.
+    private var tabletScale: CGFloat { (view.bounds.width - 12) / 1428 }
+    private var tabletGap: CGFloat { 11 * tabletScale }
+    private var tabletKeysHeight: CGFloat {
+        5 * (view.bounds.width - 12) * 0.056 + 4 * tabletGap + 5
+    }
+
+    private func tabletRow() -> UIStackView {
+        let row = UIStackView()
+        row.axis = .horizontal
+        row.spacing = tabletGap
+        row.distribution = .fill
+        return row
+    }
+
+    /// Without a width the view takes up what is left of its row, which absorbs any rounding.
+    private func add(_ view: UIView, to row: UIStackView, width: CGFloat? = nil) {
+        row.addArrangedSubview(view)
+        guard let width else {
+            view.setContentHuggingPriority(.init(1), for: .horizontal)
+            view.setContentCompressionResistancePriority(.init(1), for: .horizontal)
+            return
         }
-        let delete = key("", special: true)
-        delete.setImage(UIImage(systemName: "delete.left"), for: .normal)
+        let constraint = view.widthAnchor.constraint(equalToConstant: width * tabletScale)
+        constraint.priority = .init(999)
+        constraint.isActive = true
+    }
+
+    private func tabletKey(title: String = "", symbol: String? = nil, corner: KeyboardKeyButton.GlyphCorner = .center)
+        -> KeyboardKeyButton
+    {
+        let button = key(title)
+        button.popupText = nil
+        button.layer.cornerRadius = KeyboardKeyAppearance.tabletCornerRadius
+        button.glyphCorner = corner
+        if corner == .center {
+            button.titleLabel?.font = .systemFont(ofSize: tabletScale > 0.8 ? 22 : 19)
+        } else {
+            button.titleLabel?.font = .systemFont(ofSize: 16)
+        }
+        if let symbol { setTabletSymbol(symbol, on: button) }
+        return button
+    }
+
+    private func setTabletSymbol(_ name: String, on button: UIButton) {
+        button.setImage(
+            UIImage(systemName: name, withConfiguration: UIImage.SymbolConfiguration(pointSize: 18)), for: .normal)
+    }
+
+    private func tabletCharacterKey(_ value: TabletKey) -> KeyboardKeyButton {
+        guard let shifted = value.shifted else {
+            let button = tabletKey(title: uppercase ? capitalizedKey(value.base) : value.base)
+            letterKeys.append((button, value.base))
+            configureAlternates(on: button, character: value.base)
+            button.addAction(UIAction { [weak self] _ in self?.type(value.base) }, for: .touchUpInside)
+            return button
+        }
+        let button = tabletKey()
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        paragraph.lineSpacing = tabletScale > 0.8 ? 8 : 3
+        button.titleLabel?.numberOfLines = 2
+        button.setAttributedTitle(
+            NSAttributedString(
+                string: shifted + "\n" + value.base,
+                attributes: [
+                    .font: UIFont.systemFont(ofSize: tabletScale > 0.8 ? 18 : 15),
+                    .foregroundColor: KeyboardKeyAppearance.foreground,
+                    .paragraphStyle: paragraph,
+                ]), for: .normal)
+        button.accessibilityLabel = value.base
+        button.accessibilityCustomActions = [
+            UIAccessibilityCustomAction(name: shifted) { [weak self] _ in
+                self?.typeTabletCharacter(shifted)
+                return true
+            }
+        ]
+        button.addAction(
+            UIAction { [weak self] _ in
+                guard let self else { return }
+                self.typeTabletCharacter(self.shiftPressed || self.capsLock ? shifted : value.base)
+            }, for: .touchUpInside)
+        return button
+    }
+
+    private func typeTabletCharacter(_ character: String) {
+        lastSpaceTap = 0
+        insertText(character)
+    }
+
+    private func buildTabletKeys() {
+        let layout = TabletKeyboardLayout.layout(for: language)
+        let symbolRows = TabletKeyboardLayout.symbols
+        let plain: ([String]) -> [TabletKey] = { $0.map { TabletKey($0) } }
+        let iso = symbols || layout.isISO
+
+        let numberRow = tabletRow()
+        for value in symbols ? plain(symbolRows[0]) : layout.numbers {
+            let button = symbols ? tabletSymbolKey(value.base) : tabletCharacterKey(value)
+            add(button, to: numberRow, width: 88)
+        }
+        let delete = tabletKey(symbol: "delete.left", corner: .bottomTrailing)
         delete.accessibilityLabel = L10n.text("Löschen")
         delete.addAction(UIAction { [weak self] _ in self?.deleteCharacter() }, for: .touchUpInside)
         configureRepeatedDelete(on: delete)
-        numberRow.addArrangedSubview(delete)
+        add(delete, to: numberRow)
         rows.addArrangedSubview(numberRow)
-        for (index, characters) in language.keyboardRows.enumerated() {
-            let row = makeRow()
-            let leading = key("", special: true)
-            leading.setImage(
-                UIImage(systemName: index == 0 ? "arrow.right.to.line" : shiftSymbol),
-                for: .normal)
-            leading.accessibilityLabel = L10n.text(index == 0 ? "Tabulator" : "Umschalten")
-            if index == 0 {
-                leading.addAction(UIAction { [weak self] _ in self?.insertText("\t") }, for: .touchUpInside)
-            } else {
-                leading.addTarget(self, action: #selector(toggleShift), for: .touchDown)
-                shiftButtons.append(leading)
-            }
-            row.addArrangedSubview(leading)
-            let values =
-                Array(characters).map(String.init)
-                + (index == 0 && language == .de ? ["+"] : index == 2 ? [",", ".", "-"] : [])
-            for character in values {
-                let button = key(uppercase ? capitalizedKey(character) : character)
-                letterKeys.append((button, character))
-                configureAlternates(on: button, character: character)
-                button.addAction(UIAction { [weak self] _ in self?.type(character) }, for: .touchUpInside)
-                row.addArrangedSubview(button)
-            }
-            if index == 1 {
-                let enter = key("", special: true)
-                enter.setImage(UIImage(systemName: "return"), for: .normal)
-                enter.accessibilityLabel = returnTitle
-                returnButton = enter
-                enter.addAction(UIAction { [weak self] _ in self?.insertText("\n") }, for: .touchUpInside)
-                row.addArrangedSubview(enter)
-            } else if index == 2 {
-                let shift = key("", special: true)
-                shift.setImage(UIImage(systemName: shiftSymbol), for: .normal)
-                shift.accessibilityLabel = L10n.text("Umschalten")
-                shiftButtons.append(shift)
-                shift.addTarget(self, action: #selector(toggleShift), for: .touchDown)
-                row.addArrangedSubview(shift)
-            }
-            rows.addArrangedSubview(row)
+
+        let topRow = tabletRow()
+        let tab = tabletKey(symbol: "arrow.right.to.line", corner: .bottomLeading)
+        tab.accessibilityLabel = L10n.text("Tabulator")
+        tab.addAction(UIAction { [weak self] _ in self?.insertText("\t") }, for: .touchUpInside)
+        add(tab, to: topRow, width: 141)
+        for value in symbols ? plain(symbolRows[1]) : layout.top {
+            add(symbols ? tabletSymbolKey(value.base) : tabletCharacterKey(value), to: topRow, width: 88)
         }
-        addBottomRow(tablet: true)
+        rows.addArrangedSubview(topRow)
+
+        let homeRow = tabletRow()
+        if symbols {
+            add(tabletPlaceholder(), to: homeRow, width: 165)
+            for value in symbolRows[2] { add(tabletSymbolKey(value), to: homeRow, width: 88) }
+        } else {
+            let caps = tabletKey(symbol: capsLock ? "capslock.fill" : "capslock", corner: .bottomLeading)
+            caps.accessibilityLabel = L10n.text("Umschalttaste; doppeltippen für Feststelltaste")
+            caps.addTarget(self, action: #selector(toggleCapsLock), for: .touchDown)
+            capsLockButton = caps
+            add(caps, to: homeRow, width: 165)
+            for value in layout.home { add(tabletCharacterKey(value), to: homeRow, width: 88) }
+        }
+        let enter = tabletKey(symbol: "return", corner: .bottomTrailing)
+        enter.accessibilityLabel = returnTitle
+        enter.titleLabel?.adjustsFontSizeToFitWidth = true
+        returnButton = enter
+        enter.addAction(UIAction { [weak self] _ in self?.insertText("\n") }, for: .touchUpInside)
+        add(enter, to: homeRow)
+        rows.addArrangedSubview(homeRow)
+        if iso {
+            let upper = tabletKey()
+            upper.isAccessibilityElement = false
+            upper.addAction(UIAction { [weak self] _ in self?.insertText("\n") }, for: .touchUpInside)
+            add(upper, to: topRow)
+            makeReturnShape(upper: upper, lower: enter)
+        }
+
+        let bottomRow = tabletRow()
+        if symbols {
+            add(tabletPlaceholder(), to: bottomRow, width: 214)
+            add(UIView(), to: bottomRow, width: 88)
+            for value in symbolRows[3] { add(tabletSymbolKey(value), to: bottomRow, width: 88) }
+            add(UIView(), to: bottomRow)
+        } else {
+            let left = tabletShiftKey(corner: .bottomLeading)
+            add(left, to: bottomRow, width: layout.isISO ? 115 : 213)
+            for value in layout.bottom { add(tabletCharacterKey(value), to: bottomRow, width: 88) }
+            add(tabletShiftKey(corner: .bottomTrailing), to: bottomRow)
+        }
+        rows.addArrangedSubview(bottomRow)
+        addTabletBottomRow()
     }
 
-    private func addBottomRow(tablet: Bool = false) {
+    private func tabletSymbolKey(_ character: String) -> KeyboardKeyButton {
+        let button = tabletKey(title: character)
+        configureAlternates(on: button, character: character)
+        button.addAction(UIAction { [weak self] _ in self?.type(character) }, for: .touchUpInside)
+        return button
+    }
+
+    /// Undo and redo sit here natively. Apple offers keyboards no way to trigger them, so the slot stays empty.
+    private func tabletPlaceholder() -> UIView {
+        let view = UIView()
+        view.backgroundColor = KeyboardKeyAppearance.characterSurface.withAlphaComponent(0.4)
+        view.layer.cornerRadius = KeyboardKeyAppearance.tabletCornerRadius
+        view.layer.cornerCurve = .continuous
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    private func tabletShiftKey(corner: KeyboardKeyButton.GlyphCorner) -> KeyboardKeyButton {
+        let shift = tabletKey(symbol: tabletShiftSymbol, corner: corner)
+        shift.accessibilityLabel = L10n.text("Umschalten")
+        shift.addTarget(self, action: #selector(toggleShift), for: .touchDown)
+        shiftButtons.append(shift)
+        return shift
+    }
+
+    private var tabletShiftSymbol: String { uppercase ? "shift.fill" : "shift" }
+
+    private func makeReturnShape(upper: KeyboardKeyButton, lower: KeyboardKeyButton) {
+        for part in [upper, lower] {
+            part.normalSurface = .clear
+            part.pressedSurface = .clear
+            part.layer.shadowOpacity = 0
+            part.highlightChanged = { [weak self] _, highlighted in self?.tabletReturnShape.isPressed = highlighted }
+        }
+        tabletReturnShape.isPressed = false
+        rows.insertSubview(tabletReturnShape, at: 0)
+        rows.didLayout = { [weak self] in
+            guard let self, self.rows.arrangedSubviews.count == 5 else { return }
+            let top = self.rows.arrangedSubviews[1].frame
+            let home = self.rows.arrangedSubviews[2].frame
+            let scale = self.tabletScale
+            self.tabletReturnShape.update(
+                upper: CGRect(x: top.maxX - 87 * scale, y: top.minY, width: 87 * scale, height: top.height),
+                lower: CGRect(x: home.maxX - 64 * scale, y: home.minY, width: 64 * scale, height: home.height),
+                radius: KeyboardKeyAppearance.tabletCornerRadius)
+        }
+    }
+
+    private func addTabletBottomRow() {
+        let bottom = tabletRow()
+        let globe = tabletKey(symbol: "globe", corner: .bottomLeading)
+        globe.accessibilityLabel = L10n.text("Nächste Tastatur")
+        globe.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
+        add(globe, to: bottom, width: 123)
+        let modeTitle = symbols ? "ABC" : ".?123"
+        let leftMode = tabletKey(title: modeTitle, corner: .bottomLeading)
+        leftMode.addTarget(self, action: #selector(toggleSymbols), for: .touchUpInside)
+        add(leftMode, to: bottom, width: 124)
+        if let launchHost {
+            launchHost.view.removeFromSuperview()
+            NSLayoutConstraint.deactivate(launchHost.view.constraints.filter { $0.firstAttribute == .width })
+            add(launchHost.view, to: bottom, width: 123)
+        }
+        let space = tabletKey()
+        spaceButton = space
+        space.showsMenuAsPrimaryAction = false
+        updateLanguageMenu()
+        space.accessibilityLabel = L10n.text("Leerzeichen")
+        space.accessibilityHint = L10n.text("Gedrückt halten, um die Sprache auszuwählen.")
+        addSpaceBranding(to: space)
+        space.addAction(UIAction { [weak self] _ in self?.spacePressed() }, for: .touchUpInside)
+        add(space, to: bottom)
+        insert.removeFromSuperview()
+        bottom.addArrangedSubview(insert)
+        let rightMode = tabletKey(title: modeTitle, corner: .bottomTrailing)
+        rightMode.addTarget(self, action: #selector(toggleSymbols), for: .touchUpInside)
+        add(rightMode, to: bottom, width: 191)
+        let hide = tabletKey(symbol: "keyboard.chevron.compact.down", corner: .bottomTrailing)
+        hide.accessibilityLabel = L10n.text("Tastatur schließen")
+        hide.addAction(UIAction { [weak self] _ in self?.dismissKeyboard() }, for: .touchUpInside)
+        add(hide, to: bottom, width: 190)
+        rows.addArrangedSubview(bottom)
+        updateAppearance()
+    }
+
+    private func addBottomRow() {
         let bottom = UIStackView()
         bottom.axis = .horizontal
         bottom.spacing = 6
@@ -574,7 +780,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         space.addAction(UIAction { [weak self] _ in self?.spacePressed() }, for: .touchUpInside)
         space.accessibilityHint = L10n.text("Gedrückt halten, um die Sprache auszuwählen.")
         let enter = key("", special: true)
-        if !tablet { returnButton = enter }
+        returnButton = enter
         enter.titleLabel?.font = .systemFont(ofSize: 16)
         enter.accessibilityLabel = returnTitle
         enter.addAction(UIAction { [weak self] _ in self?.insertText("\n") }, for: .touchUpInside)
@@ -597,17 +803,9 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             bottom.addArrangedSubview(launchHost.view)
             launchHost.view.widthAnchor.constraint(equalTo: mode.widthAnchor).isActive = true
         }
-        if usesTabletLayout {
-            let hide = key("", special: true)
-            hide.setImage(UIImage(systemName: "keyboard.chevron.compact.down"), for: .normal)
-            hide.accessibilityLabel = L10n.text("Tastatur schließen")
-            hide.addAction(UIAction { [weak self] _ in self?.dismissKeyboard() }, for: .touchUpInside)
-            bottom.addArrangedSubview(hide)
-            hide.widthAnchor.constraint(equalTo: mode.widthAnchor).isActive = true
-        }
-        if !tablet { bottom.addArrangedSubview(enter) }
+        bottom.addArrangedSubview(enter)
         mode.widthAnchor.constraint(equalTo: bottom.widthAnchor, multiplier: 0.11).isActive = true
-        if !tablet { enter.widthAnchor.constraint(equalTo: bottom.widthAnchor, multiplier: 0.22).isActive = true }
+        enter.widthAnchor.constraint(equalTo: bottom.widthAnchor, multiplier: 0.22).isActive = true
         rows.addArrangedSubview(bottom)
         updateAppearance()
     }
@@ -772,7 +970,14 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             button.setTitle(title, for: .normal)
             button.popupText = title
         }
-        for shift in shiftButtons { shift.setImage(UIImage(systemName: shiftSymbol), for: .normal) }
+        for shift in shiftButtons {
+            if usesTabletLayout {
+                setTabletSymbol(tabletShiftSymbol, on: shift)
+            } else {
+                shift.setImage(UIImage(systemName: shiftSymbol), for: .normal)
+            }
+        }
+        if let capsLockButton { setTabletSymbol(capsLock ? "capslock.fill" : "capslock", on: capsLockButton) }
     }
 
     private var shiftSymbol: String { capsLock ? "capslock.fill" : (uppercase ? "shift.fill" : "shift") }
@@ -812,7 +1017,16 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             capsLock = false
             lastShiftTap = now
         }
+        shiftPressed = uppercase
         updateLetterCase()
+    }
+
+    @objc private func toggleCapsLock() {
+        capsLock.toggle()
+        uppercase = capsLock
+        shiftPressed = false
+        updateLetterCase()
+        if !capsLock { synchronizeCapitalization() }
     }
 
     @objc private func toggleSymbols() {
@@ -861,6 +1075,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private func insertText(_ text: String) {
         let before = textDocumentProxy.documentContextBeforeInput ?? ""
         textDocumentProxy.insertText(text)
+        shiftPressed = false
         synchronizeCapitalization(before: before + text)
         scheduleSuggestions()
     }
@@ -1180,7 +1395,8 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         // The visible Link and its one-use capability must remain the same snapshot.
         let request = startRequest
         // Rendering depends only on these; the closures read everything else when they run.
-        let state = RenderedMicrophone(url: request?.url, phase: voiceSession?.phase)
+        let tablet = usesTabletLayout
+        let state = RenderedMicrophone(url: request?.url, phase: voiceSession?.phase, tablet: tablet)
         guard state != renderedMicrophone else { return }
         renderedMicrophone = state
         launchHost?.rootView = DictationLaunchLink(
@@ -1207,7 +1423,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
                 } catch {
                     return false
                 }
-            })
+            }, tablet: tablet)
     }
 
     /// Dictation still works without it, so a failure here must not stop the start.

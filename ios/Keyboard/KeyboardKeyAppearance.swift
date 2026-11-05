@@ -8,6 +8,7 @@ enum KeyboardKeyAppearance {
             : UIColor(red: 0.41, green: 0.28, blue: 0.64, alpha: 1)
     }
     static let cornerRadius: CGFloat = 7
+    static let tabletCornerRadius: CGFloat = 10
     static let characterSurface = UIColor { traits in
         traits.userInterfaceStyle == .dark ? UIColor(white: 0.262, alpha: 1) : .white
     }

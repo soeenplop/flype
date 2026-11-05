@@ -4,7 +4,7 @@ iPhone, iPad and Mac share one structure: **Start, Words, Settings**. The accoun
 
 On iPhone, transcribing stays a keyboard feature. The start page holds setup, standby and a real test area, but no second regular recording flow. On Mac, you hold the key to speak and release to insert. The button on the start page runs a local test, and test text is not sent to another app. The floating indicator shows the recording, the language, a round outline that reacts to your voice and a round button that cancels. See [Recording start](RECORDING-START.md#cancelling).
 
-The iOS app is universal and uses the adaptive sidebar on iPad. On wide iPads, the keyboard gets a number row and extra native function keys. Narrow layouts stay compact.
+The iOS app is universal and uses the adaptive sidebar on iPad. On wide iPads, the keyboard follows the native full-size layout with five rows: a number row, keys with two characters, function keys with their symbol in a corner and, in German, French, Spanish and Italian, an L-shaped Return. Its grid is measured on the native 12.9-inch keyboard and scales with the width. Apple offers keyboards no undo or redo, so those keys and the row above stay empty. Narrow layouts stay compact.
 
 ## Six languages
 
