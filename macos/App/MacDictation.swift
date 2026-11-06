@@ -23,6 +23,7 @@ final class MacDictation: ObservableObject {
     private var capture: MicrophoneCapture?
     private var engine: (any SpeechRecognitionEngine)?
     private var preparation: Task<Void, Error>?
+    private var dictionaryCorrection = DictionaryCorrectionService()
     private var options = DictationOptions(provider: .parakeet, mode: .cleaned)
     private var dictionary = DictionarySnapshot()
     private var file: URL?
@@ -53,6 +54,7 @@ final class MacDictation: ObservableObject {
                 "Du hast während der Verarbeitung weitergearbeitet. Dein Text ist in Flype zum Kopieren bereit."
         }
         refreshPermissions()
+        preloadSpeechModel()
         // Interrupted recordings are never retained as a history.
         let fm = FileManager.default
         if let files = try? fm.contentsOfDirectory(at: fm.temporaryDirectory, includingPropertiesForKeys: nil) {
@@ -60,6 +62,11 @@ final class MacDictation: ObservableObject {
                 try? fm.removeItem(at: file)
             }
         }
+    }
+    /// Loading Parakeet can take seconds the first time, so it happens at launch instead of after the first release.
+    private func preloadSpeechModel() {
+        guard DictationOptions.current().provider == .parakeet, ParakeetModelStore.isAvailable else { return }
+        Task { try? await ParakeetSpeechEngine().prepare() }
     }
     func suspend() {
         shortcut.stop()
@@ -120,7 +127,17 @@ final class MacDictation: ObservableObject {
             insertionProblem = target.problem ?? "Das Zieltextfeld konnte nicht übernommen werden."
             dictionary = try PersonalDictionaryStore.shared().snapshot()
             if confirmed { confirmHolding() }
-            let preparation = Task { try await engine.prepare() }
+            let correction = DictionaryCorrectionService()
+            dictionaryCorrection = correction
+            let dictionary = self.dictionary
+            let language = options.language
+            // Both load while the user is still speaking, not after the release.
+            let preparation = Task {
+                try await engine.prepare()
+                if dictionary.entries.contains(where: { $0.enabled && $0.useForDictation }) {
+                    await correction.prepare(language: language)
+                }
+            }
             self.preparation = preparation
             work = Task { [self] in
                 do { try await preparation.value } catch { if operation == id { fail(error) } }
@@ -156,6 +173,7 @@ final class MacDictation: ObservableObject {
         guard recording, let file, let engine, let preparation else { return }
         let dictionary = self.dictionary
         let options = self.options
+        let correction = dictionaryCorrection
         destination = destination?.refreshed()
         let fieldContext = destination?.textBeforeCursor()
         // Only the length, never the text: shows whether the target app exposes what is in front of the cursor.
@@ -186,9 +204,7 @@ final class MacDictation: ObservableObject {
                 guard !text.isEmpty else { throw MacError.noSpeech }
                 original = text
                 text = dictionary.applyingAliases(to: text)
-                let service = DictionaryCorrectionService()
-                await service.prepare(language: options.language)
-                text = try await service.correct(text, file: file, dictionary: dictionary).text
+                text = try await correction.correct(text, file: file, dictionary: dictionary).text
                 if options.mode == .cleaned {
                     overlay.setStage(.cleaning)
                     do {
