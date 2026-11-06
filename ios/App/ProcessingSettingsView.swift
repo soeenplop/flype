@@ -7,10 +7,7 @@ struct ProcessingSettingsView: View {
     @ObservedObject var speechSetup: SpeechSetupController
     var onSetup: () -> Void
     @AppStorage("speechProvider") private var provider = SpeechProvider.parakeet.rawValue
-    @AppStorage("dictationMode") private var mode = "cleaned"
     @State private var confirmingDelete = false
-    @AppStorage(CloudCleanup.consentKey) private var cloudConsent = false
-    private var usesCloudCleanup: Bool { cloudConsent && account.session != nil }
     private var locked: Bool { dictation.busy || dictation.sessionActive || speechSetup.downloading }
     private var selectableProviders: [SpeechProvider] {
         SpeechProvider.allCases.filter {
@@ -20,28 +17,7 @@ struct ProcessingSettingsView: View {
     var body: some View {
         Form {
             Section(L10n.text("Dein Schreibstil")) {
-                Picker(L10n.text("Transkriptionen"), selection: $mode) {
-                    ForEach(DictationMode.allCases, id: \.rawValue) { value in
-                        Text(L10n.text(value.title)).tag(value.rawValue)
-                    }
-                }.pickerStyle(.segmented).disabled(dictation.busy)
-                if mode == DictationMode.cleaned.rawValue {
-                    Text(
-                        L10n.text("Setzt Satzzeichen und lässt Füllwörter weg.")
-                    )
-                    .font(.footnote).foregroundStyle(.secondary)
-                }
-                if !usesCloudCleanup {
-                    if let explanation = TextCleanupService.availabilityMessage() {
-                        Text(L10n.text(explanation)).font(.footnote).foregroundStyle(
-                            .secondary)
-                    } else {
-                        Label(L10n.text("Bereinigung verfügbar"), systemImage: "sparkles").font(.footnote)
-                    }
-                }
-                if mode == DictationMode.cleaned.rawValue {
-                    CloudCleanupToggle(account: account).disabled(dictation.busy)
-                }
+                CleanupModePicker(account: account).disabled(dictation.busy)
             }
             FlypeLanguageSettings(locked: locked)
             Section(L10n.text("Für dich")) {

@@ -274,10 +274,10 @@ struct OnboardingView: View {
                 feature(
                     "Deine Wörter", "Für Namen, Firmen und Begriffe, die Flype genauso schreiben soll.", symbol: "book")
                 Divider()
-                feature("Dein Schreibstil", "Setzt Satzzeichen und lässt Füllwörter weg.", symbol: "sparkles")
-            }
-            if let explanation = TextCleanupService.availabilityMessage() {
-                hint(explanation, symbol: "sparkles")
+                feature(
+                    "Dein Schreibstil",
+                    "Fügt den erkannten Text unverändert ein. „Bereinigt“ korrigiert ihn mit einem KI-Modell von OpenAI in der Cloud.",
+                    symbol: "sparkles")
             }
             HStack {
                 Button(L10n.text("Deine Wörter")) { complete(destination: 3) }.frame(minHeight: 44)

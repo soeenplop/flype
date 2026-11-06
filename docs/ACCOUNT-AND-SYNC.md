@@ -39,16 +39,16 @@ For Sign in with Apple, set `one.binda.flype.app` as the Primary App ID. A Servi
 
 ## Cloud cleanup with OpenAI
 
-Cleanup can optionally run on the OpenAI model `gpt-6-luna`. The opt-in is per device, needs a signed-in account and is off by default.
+Cleanup runs only on the OpenAI model `gpt-6-luna`. Choosing Cleaned asks for consent, which is stored per device, needs a signed-in account and is off by default. The mode itself syncs, so a new device never starts sending text without its own consent.
 
 1. The app calls the Edge Function `cloud-cleanup` with the user's token. The OpenAI key is only a server-side function secret, `OPENAI_API_KEY`.
 2. The function takes quota through `flype_take_cleanup_quota`, which also verifies the token. Per account: 10 requests a minute, 200 a day, 50,000 characters a day. For all users together: 20,000 requests a day. The values are in migration `202611040001_cloud_cleanup.sql`.
-3. The apps send up to 200 characters before the cursor, so a transcription can continue a typed sentence. On iPhone, the keyboard passes them to the app per transcription, and the app deletes them after reading.
-4. Neither the function nor the database stores or logs text. The app checks the answer like local cleanup and keeps the original text when in doubt.
+3. The apps send up to 200 characters before and after the cursor, so a transcription can continue a typed sentence and end without a period when the sentence goes on. On iPhone, the keyboard passes them to the app per transcription, and the app deletes them after reading.
+4. Neither the function nor the database stores or logs text.
 
 To deploy: apply the migration, run `supabase secrets set OPENAI_API_KEY=…`, then `supabase functions deploy cloud-cleanup`. Also set a spending limit in the OpenAI project. Requests set `store: false`.
 
-If the function is unreachable, offline, overloaded or over the limit, Apple's on-device model takes over with the same prompt (`shared/FlypeCore/Sources/FlypeCore/CleanupPrompt.swift`). Without that model, the original text stays.
+If the function is unreachable, offline, overloaded or over the limit, the original text stays and the app shows a notice.
 
 ## Checks
 

@@ -12,11 +12,11 @@ struct PrivacyView: View {
                 .accessibilityAddTraits(.isHeader)
             item(
                 "Cloud nur auf deinen Wunsch",
-                "Aufnahmen bleiben immer auf deinem Gerät. Text verlässt es nur, wenn du die Cloud-Bereinigung einschaltest."
+                "Aufnahmen bleiben immer auf deinem Gerät. Text verlässt es nur, wenn du „Bereinigt“ wählst."
             )
             item(
                 "Cloud-Bereinigung",
-                "Ist sie eingeschaltet, geht jede Transkription mit bis zu 200 Zeichen vor dem Cursor und passenden Begriffen aus deinen Wörtern über Supabase an OpenAI und wird dort von einem KI-Modell verarbeitet. Flype speichert den Text nicht, nur die Anzahl deiner Anfragen und Zeichen für das Nutzungslimit."
+                "Wählst du „Bereinigt“, geht jede Transkription mit bis zu 200 Zeichen vor und nach dem Cursor und passenden Begriffen aus deinen Wörtern über Supabase an OpenAI und wird dort von einem KI-Modell verarbeitet. Flype speichert den Text nicht, nur die Anzahl deiner Anfragen und Zeichen für das Nutzungslimit."
             )
             item(
                 "Mikrofon",
@@ -55,7 +55,7 @@ struct PrivacyView: View {
             #if os(iOS)
                 item(
                     "Keine Aufzeichnung beim Tippen",
-                    "Flype speichert deine Eingaben nicht. Nur beim Start einer Transkription liest Flype bis zu 200 Zeichen vor dem Cursor, damit der Text zum Satz passt. Sie werden danach gelöscht und gehen nur mit eingeschalteter Cloud-Bereinigung an einen Server."
+                    "Flype speichert deine Eingaben nicht. Nur beim Start einer Transkription liest Flype bis zu 200 Zeichen vor und nach dem Cursor, damit der Text zum Satz passt. Sie werden danach gelöscht und gehen nur bei „Bereinigt“ an einen Server."
                 )
                 item(
                     "Automatisches Einfügen",

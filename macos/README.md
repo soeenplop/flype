@@ -23,8 +23,6 @@ Automated checks use a local ad-hoc signature and write to `build/check/macos/Fl
 
 Open the app and allow the microphone and Accessibility during setup. Hold the microphone key in any text field, speak and release. A very short press starts no recording. Flype inserts into any focused field, including browsers and Electron apps. If you switch app or window while recording, or the field is a protected password field, Flype does not insert and keeps the last text ready to copy. Recordings last at most two minutes, and locking the Mac or sleep cancels them.
 
-`./macos/scripts/check-cleanup.sh` runs the real on-device cleanup model against test sentences. It needs Apple Intelligence and is not part of the normal checks.
-
 ## Local data
 
 - Active dictionary: `~/Library/Application Support/Flype/Dictionary/`

@@ -107,7 +107,7 @@
 		C47257A44DA7AF6C01E10954 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RecordingLevelView.swift"; sourceTree = "<group>"; };
 		C49DF1242C42C62F505F8938 = { isa = PBXBuildFile; fileRef = B8FCB3401BB894E506DFA109; };
 		C99C9D619DBFD0C8160FB05E = { isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "it"; path = "it.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
-		CE1D18B606A38836F51060E1 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloudCleanupToggle.swift"; sourceTree = "<group>"; };
+		CE1D18B606A38836F51060E1 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CleanupModePicker.swift"; sourceTree = "<group>"; };
 		D27DB2B9D02AFF16A8EDE0A8 = { isa = PBXBuildFile; fileRef = 87180286BABB238988F89A1F; };
 		D4B11751333DF95BC3701453 = { isa = PBXBuildFile; fileRef = F306405A49E61DF9FE66D118; };
 		D8726A86DB4B885FD67F7D2E = { isa = PBXBuildFile; fileRef = E82EABABB2B31B8B5F37D1FC; };

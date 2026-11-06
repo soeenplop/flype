@@ -237,7 +237,11 @@ final class AccountController: NSObject, ObservableObject, ASWebAuthenticationPr
         defer { refreshTask = nil }
         return try await task.value
     }
-    /// Returns nil when the cleanup should stay on this device: no opt-in, or nobody signed in.
+    /// Cleanup needs "Bereinigt", the consent on this device and an account; otherwise the text stays verbatim.
+    static func cleanupActive(mode: DictationMode) -> Bool {
+        mode == .cleaned && CloudCleanup.isEnabled() && current?.session != nil
+    }
+    /// Returns nil when nothing may be sent: no consent, or nobody signed in.
     static func cloudCleanupToken() async throws -> String? {
         guard CloudCleanup.isEnabled(), let account = current, var session = account.session else { return nil }
         guard !account.needsSignIn else { throw SupabaseAPI.Failure.sessionExpired }

@@ -256,7 +256,7 @@ final class DictationController: NSObject, ObservableObject {
                     (try? DictationFieldContextStore.shared())?.take(requestID: id)
                 }
                 removeAudio()
-                if options.mode == .verbatim {
+                if !AccountController.cleanupActive(mode: options.mode) {
                     finishResult(wordText, operation: operation, notice: dictionaryNotice)
                     return
                 }
@@ -267,15 +267,16 @@ final class DictationController: NSObject, ObservableObject {
                 let service = cleanup
                 let language = options.language
                 let task = Task {
-                    let token = try? await AccountController.cloudCleanupToken()
+                    guard let token = try await AccountController.cloudCleanupToken() else {
+                        throw SupabaseAPI.Failure.unauthorized
+                    }
                     return try await service.clean(
                         wordText, dictionary: snapshot, language: language, cloudToken: token,
                         fieldContext: fieldContext?.text, followingText: fieldContext?.following)
                 }
                 cleanupTask = task
                 watchdog = Task { [weak self] in
-                    let limit = CloudCleanup.isEnabled() ? 20 : 8
-                    do { try await Task.sleep(for: .seconds(limit)) } catch { return }
+                    do { try await Task.sleep(for: .seconds(20)) } catch { return }
                     guard let self, self.operationID == operation, self.phase == .cleaning else { return }
                     task.cancel()
                     self.finishResult(

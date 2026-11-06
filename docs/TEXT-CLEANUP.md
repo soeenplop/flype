@@ -1,12 +1,14 @@
 # Text cleanup
 
-Cleaned is the default on both platforms. A one-time startup migration also turned it on for existing installs, and a later explicit choice of Verbatim stays saved. If cleanup is unavailable, times out or looks unsafe, the full recognized text is kept and insertion continues without asking for confirmation.
+Cleanup runs only in the cloud, with [OpenAI through a Supabase function](ACCOUNT-AND-SYNC.md#cloud-cleanup-with-openai). It is active when the mode is Cleaned, the person agreed on this device and is signed in. Choosing Cleaned asks for that consent, and choosing Verbatim withdraws it. Without all three, Flype inserts the recognized text verbatim. If the cloud fails, times out or hits the limit, the full recognized text is kept with a notice.
+
+The cleanup corrects punctuation, capitalization, spelling, compounds, grammar and words the recognition clearly got wrong, because the model knows the language better than the recognition does. It also sees up to 200 characters before and after the cursor, so a dictation can continue a sentence and end without a period when the sentence goes on.
 
 ## Self-corrections
 
-The recognized text stays available as the original. Cleanup uses Apple's local FoundationModels model, or [OpenAI if the user opted in](ACCOUNT-AND-SYNC.md#cloud-cleanup-with-openai). It must replace only the smallest revoked passage and keep everything around it, including other sentences. A real negative answer must stay negative, and ambiguous corrections stay literal. This is a model instruction, not a guarantee of equal meaning.
+The recognized text stays available as the original. It must replace only the smallest revoked passage and keep everything around it, including other sentences. A real negative answer must stay negative, and ambiguous corrections stay literal. This is a model instruction, not a guarantee of equal meaning.
 
-The instructions apply generally to quantities, attributes, dates and clauses, without greeting-specific rules or replacement lists. Language-specific examples go with the shared instructions. Very long input keeps the original instead of being truncated.
+The instructions apply generally to quantities, attributes, dates and clauses, without greeting-specific rules or replacement lists. Language-specific examples go with the instructions in `supabase/functions/cloud-cleanup/handler.mjs`. Very long input keeps the original instead of being truncated.
 
 Explicit quantity corrections (a number, optional filler, a correction signal and a replacement number) are resolved directly from the source words first. Ambiguous decimals and sentence boundaries are left alone. The model cannot rewrite quantities or drop other words when no correction signals remain.
 
@@ -22,6 +24,6 @@ A repeated subject followed by a different form of "to be" can revoke an unfinis
 
 ## Testing with the real model
 
-On a Mac with Apple Intelligence, run `./macos/scripts/check-cleanup.sh`. It compiles the production cleanup service with FlypeCore and sends only synthetic sentences to the local model. It fails on unavailable models, unexpected content (ignoring case and punctuation) or a review flag. It is separate from the deterministic core tests and the normal checks.
+There is no automated check against the real model. The handler tests in `supabase/functions/cloud-cleanup/handler.test.mjs` cover the request, quota and prompt wiring with a fake OpenAI client. Check prompt changes by hand with a signed-in account after deploying the function.
 
-The fixtures cover German only. Other languages have not been checked with the real model.
+Apple's on-device model was removed from cleanup on 2026-11-06: with broader corrections it copied words from examples, lowercased nouns and copied text after the cursor. The dictionary check still uses it, see [DICTIONARY-CORRECTION.md](DICTIONARY-CORRECTION.md).

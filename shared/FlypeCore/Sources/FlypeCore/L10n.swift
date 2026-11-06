@@ -13,12 +13,57 @@ public enum L10n {
     }
     public static var supportedKeys: [String] { translations.keys.sorted() }
     private static let translations: [String: [String]] = [
-        "Mit OpenAI in der Cloud bereinigen": [
-            "Clean up with OpenAI in the cloud",
-            "Nettoyer avec OpenAI dans le cloud",
-            "Pulisci con OpenAI nel cloud",
-            "Limpiar con OpenAI en la nube",
-            "Opschonen met OpenAI in de cloud",
+        "Jede Transkription wird mit bis zu 200 Zeichen vor und nach dem Cursor und passenden Begriffen aus deinen Wörtern über unseren Dienstleister Supabase an OpenAI übertragen und dort von einem KI-Modell verarbeitet. Flype speichert den Text nicht. Mit „Wörtlich“ schaltest du das jederzeit wieder aus.":
+            [
+                "Each transcription is sent with up to 200 characters before and after the cursor and matching terms from your words through our service provider Supabase to OpenAI, where an AI model processes it. Flype does not store the text. Choose “Verbatim” to turn this off at any time.",
+                "Chaque transcription est transmise avec jusqu’à 200 caractères avant et après le curseur et les termes correspondants de vos mots à OpenAI via notre prestataire Supabase, où un modèle d’IA la traite. Flype ne conserve pas le texte. Choisissez « Mot à mot » pour désactiver cette option à tout moment.",
+                "Ogni trascrizione viene inviata con un massimo di 200 caratteri prima e dopo il cursore e i termini corrispondenti delle tue parole a OpenAI tramite il nostro fornitore Supabase, dove viene elaborata da un modello di IA. Flype non conserva il testo. Scegli «Testo fedele» per disattivarlo in qualsiasi momento.",
+                "Cada transcripción se envía con hasta 200 caracteres antes y después del cursor y los términos correspondientes de tus palabras a OpenAI a través de nuestro proveedor Supabase, donde la procesa un modelo de IA. Flype no guarda el texto. Elige «Literal» para desactivarlo en cualquier momento.",
+                "Elke transcriptie wordt met maximaal 200 tekens voor en na de cursor en passende termen uit je woorden via onze dienstverlener Supabase naar OpenAI gestuurd, waar een AI-model haar verwerkt. Flype bewaart de tekst niet. Kies „Letterlijk” om dit op elk moment uit te zetten.",
+            ],
+        "Flype-Konto nötig": [
+            "Flype account needed",
+            "Compte Flype requis",
+            "Serve un account Flype",
+            "Se necesita una cuenta de Flype",
+            "Flype-account nodig",
+        ],
+        "Für die Bereinigung brauchst du ein Flype-Konto. Melde dich zuerst an.": [
+            "Polishing needs a Flype account. Sign in first.",
+            "L’amélioration nécessite un compte Flype. Connectez-vous d’abord.",
+            "Per la revisione serve un account Flype. Accedi prima.",
+            "La mejora necesita una cuenta de Flype. Inicia sesión primero.",
+            "Voor tekstverzorging heb je een Flype-account nodig. Meld je eerst aan.",
+        ],
+        "Korrigiert Satzzeichen, Rechtschreibung und Grammatik und lässt Füllwörter weg.": [
+            "Fixes punctuation, spelling and grammar and drops filler words.",
+            "Corrige la ponctuation, l’orthographe et la grammaire et supprime les mots de remplissage.",
+            "Corregge punteggiatura, ortografia e grammatica e toglie le parole riempitive.",
+            "Corrige la puntuación, la ortografía y la gramática y quita las muletillas.",
+            "Verbetert interpunctie, spelling en grammatica en laat stopwoorden weg.",
+        ],
+        "Deine Transkription geht dafür mit bis zu 200 Zeichen vor und nach dem Cursor an OpenAI. Aufnahmen bleiben immer auf deinem Gerät.":
+            [
+                "For this, your transcription is sent to OpenAI with up to 200 characters before and after the cursor. Recordings always stay on your device.",
+                "Pour cela, votre transcription est envoyée à OpenAI avec jusqu’à 200 caractères avant et après le curseur. Les enregistrements restent toujours sur votre appareil.",
+                "Per questo la trascrizione viene inviata a OpenAI con un massimo di 200 caratteri prima e dopo il cursore. Le registrazioni restano sempre sul tuo dispositivo.",
+                "Para ello, tu transcripción se envía a OpenAI con hasta 200 caracteres antes y después del cursor. Las grabaciones siempre se quedan en tu dispositivo.",
+                "Hiervoor gaat je transcriptie met maximaal 200 tekens voor en na de cursor naar OpenAI. Opnames blijven altijd op je apparaat.",
+            ],
+        "Fügt den erkannten Text unverändert ein. „Bereinigt“ korrigiert ihn mit einem KI-Modell von OpenAI in der Cloud.":
+            [
+                "Inserts the recognized text unchanged. “Polished” corrects it with an AI model from OpenAI in the cloud.",
+                "Insère le texte reconnu tel quel. « Amélioré » le corrige avec un modèle d’IA d’OpenAI dans le cloud.",
+                "Inserisce il testo riconosciuto senza modifiche. «Testo rivisto» lo corregge con un modello di IA di OpenAI nel cloud.",
+                "Inserta el texto reconocido sin cambios. «Pulido» lo corrige con un modelo de IA de OpenAI en la nube.",
+                "Voegt de herkende tekst ongewijzigd in. „Verzorgd” verbetert hem met een AI-model van OpenAI in de cloud.",
+            ],
+        "Diese Transkription ist für die Bereinigung zu lang. Der Originaltext bleibt erhalten.": [
+            "This transcription is too long to polish. The original text is kept.",
+            "Cette transcription est trop longue pour être améliorée. Le texte original est conservé.",
+            "Questa trascrizione è troppo lunga per la revisione. Il testo originale resta invariato.",
+            "Esta transcripción es demasiado larga para mejorarla. Se conserva el texto original.",
+            "Deze transcriptie is te lang voor tekstverzorging. De originele tekst blijft behouden.",
         ],
         "Transkriptionen an OpenAI senden?": [
             "Send transcriptions to OpenAI?",
@@ -34,29 +79,6 @@ public enum L10n {
             "Activar",
             "Inschakelen",
         ],
-        "Jede Transkription wird mit bis zu 200 Zeichen vor dem Cursor und passenden Begriffen aus deinen Wörtern über unseren Dienstleister Supabase an OpenAI übertragen und dort von einem KI-Modell verarbeitet. Flype speichert den Text nicht. Du kannst das jederzeit wieder ausschalten.":
-            [
-                "Each transcription is sent with up to 200 characters before the cursor and matching terms from your words through our service provider Supabase to OpenAI, where an AI model processes it. Flype does not store the text. You can turn this off at any time.",
-                "Chaque transcription est transmise avec jusqu’à 200 caractères avant le curseur et les termes correspondants de vos mots à OpenAI via notre prestataire Supabase, où un modèle d’IA la traite. Flype ne conserve pas le texte. Vous pouvez désactiver cette option à tout moment.",
-                "Ogni trascrizione viene inviata con un massimo di 200 caratteri prima del cursore e i termini corrispondenti delle tue parole a OpenAI tramite il nostro fornitore Supabase, dove viene elaborato da un modello di IA. Flype non salva il testo. Puoi disattivare questa opzione in qualsiasi momento.",
-                "Cada transcripción se envía con hasta 200 caracteres antes del cursor y los términos correspondientes de tus palabras a OpenAI a través de nuestro proveedor Supabase, donde un modelo de IA lo procesa. Flype no guarda el texto. Puedes desactivarlo en cualquier momento.",
-                "Elke transcriptie wordt met maximaal 200 tekens vóór de cursor en passende termen uit je woorden via onze dienstverlener Supabase naar OpenAI gestuurd, waar een AI-model het verwerkt. Flype slaat de tekst niet op. Je kunt dit altijd weer uitschakelen.",
-            ],
-        "Dafür brauchst du ein Flype-Konto. Ohne Anmeldung bleibt die Bereinigung auf deinem Gerät.": [
-            "This requires a Flype account. Without signing in, cleanup stays on your device.",
-            "Un compte Flype est nécessaire. Sans connexion, le nettoyage reste sur votre appareil.",
-            "Serve un account Flype. Senza accesso, la pulizia resta sul tuo dispositivo.",
-            "Necesitas una cuenta de Flype. Sin iniciar sesión, la limpieza se queda en tu dispositivo.",
-            "Hiervoor heb je een Flype-account nodig. Zonder aanmelding blijft het opschonen op je apparaat.",
-        ],
-        "Deine Transkription und bis zu 200 Zeichen vor dem Cursor werden dafür an OpenAI übertragen. Aufnahmen bleiben immer auf deinem Gerät.":
-            [
-                "Your transcription and up to 200 characters before the cursor are sent to OpenAI for this. Recordings always stay on your device.",
-                "Votre transcription et jusqu’à 200 caractères avant le curseur sont transmis à OpenAI pour cela. Les enregistrements restent toujours sur votre appareil.",
-                "La trascrizione e un massimo di 200 caratteri prima del cursore vengono inviati a OpenAI. Le registrazioni restano sempre sul tuo dispositivo.",
-                "Tu transcripción y hasta 200 caracteres antes del cursor se envían a OpenAI para ello. Las grabaciones siempre se quedan en tu dispositivo.",
-                "Je transcriptie en maximaal 200 tekens vóór de cursor worden hiervoor naar OpenAI gestuurd. Opnamen blijven altijd op je apparaat.",
-            ],
         "Das Limit für die Cloud-Bereinigung ist gerade erreicht. Dein Originaltext ist bereit.": [
             "The cloud cleanup limit has been reached for now. Your original text is ready.",
             "La limite du nettoyage dans le cloud est atteinte pour le moment. Votre texte d’origine est prêt.",
@@ -71,12 +93,12 @@ public enum L10n {
             "Nube solo si lo deseas",
             "Cloud alleen als jij dat wilt",
         ],
-        "Aufnahmen bleiben immer auf deinem Gerät. Text verlässt es nur, wenn du die Cloud-Bereinigung einschaltest.": [
-            "Recordings always stay on your device. Text only leaves it if you turn on cloud cleanup.",
-            "Les enregistrements restent toujours sur votre appareil. Le texte ne le quitte que si vous activez le nettoyage dans le cloud.",
-            "Le registrazioni restano sempre sul tuo dispositivo. Il testo lo lascia solo se attivi la pulizia nel cloud.",
-            "Las grabaciones siempre se quedan en tu dispositivo. El texto solo sale de él si activas la limpieza en la nube.",
-            "Opnamen blijven altijd op je apparaat. Tekst verlaat het alleen als je opschonen in de cloud inschakelt.",
+        "Aufnahmen bleiben immer auf deinem Gerät. Text verlässt es nur, wenn du „Bereinigt“ wählst.": [
+            "Recordings always stay on your device. Text only leaves it if you choose “Polished”.",
+            "Les enregistrements restent toujours sur votre appareil. Le texte ne le quitte que si vous choisissez « Amélioré ».",
+            "Le registrazioni restano sempre sul tuo dispositivo. Il testo lo lascia solo se scegli «Testo rivisto».",
+            "Las grabaciones siempre se quedan en tu dispositivo. El texto solo sale de él si eliges «Pulido».",
+            "Opnamen blijven altijd op je apparaat. Tekst verlaat het alleen als je „Verzorgd” kiest.",
         ],
         "Cloud-Bereinigung": [
             "Cloud cleanup",
@@ -85,13 +107,13 @@ public enum L10n {
             "Limpieza en la nube",
             "Opschonen in de cloud",
         ],
-        "Ist sie eingeschaltet, geht jede Transkription mit bis zu 200 Zeichen vor dem Cursor und passenden Begriffen aus deinen Wörtern über Supabase an OpenAI und wird dort von einem KI-Modell verarbeitet. Flype speichert den Text nicht, nur die Anzahl deiner Anfragen und Zeichen für das Nutzungslimit.":
+        "Wählst du „Bereinigt“, geht jede Transkription mit bis zu 200 Zeichen vor und nach dem Cursor und passenden Begriffen aus deinen Wörtern über Supabase an OpenAI und wird dort von einem KI-Modell verarbeitet. Flype speichert den Text nicht, nur die Anzahl deiner Anfragen und Zeichen für das Nutzungslimit.":
             [
-                "When it is on, each transcription goes with up to 200 characters before the cursor and matching terms from your words through Supabase to OpenAI, where an AI model processes it. Flype does not store the text, only the number of your requests and characters for the usage limit.",
-                "Lorsqu’il est activé, chaque transcription est transmise avec jusqu’à 200 caractères avant le curseur et les termes correspondants de vos mots à OpenAI via Supabase, où un modèle d’IA la traite. Flype ne conserve pas le texte, seulement le nombre de vos requêtes et de caractères pour la limite d’utilisation.",
-                "Quando è attiva, ogni trascrizione passa con un massimo di 200 caratteri prima del cursore e i termini corrispondenti delle tue parole tramite Supabase a OpenAI, dove viene elaborato da un modello di IA. Flype non salva il testo, ma solo il numero di richieste e caratteri per il limite di utilizzo.",
-                "Cuando está activada, cada transcripción pasa con hasta 200 caracteres antes del cursor y los términos correspondientes de tus palabras por Supabase hasta OpenAI, donde un modelo de IA lo procesa. Flype no guarda el texto, solo el número de tus solicitudes y caracteres para el límite de uso.",
-                "Als dit aan staat, gaat elke transcriptie met maximaal 200 tekens vóór de cursor en passende termen uit je woorden via Supabase naar OpenAI, waar een AI-model het verwerkt. Flype slaat de tekst niet op, alleen het aantal verzoeken en tekens voor de gebruikslimiet.",
+                "If you choose “Polished”, each transcription goes with up to 200 characters before and after the cursor and matching terms from your words through Supabase to OpenAI, where an AI model processes it. Flype does not store the text, only the number of your requests and characters for the usage limit.",
+                "Si vous choisissez « Amélioré », chaque transcription est transmise avec jusqu’à 200 caractères avant et après le curseur et les termes correspondants de vos mots à OpenAI via Supabase, où un modèle d’IA la traite. Flype ne conserve pas le texte, seulement le nombre de vos requêtes et de caractères pour la limite d’utilisation.",
+                "Se scegli «Testo rivisto», ogni trascrizione passa con un massimo di 200 caratteri prima e dopo il cursore e i termini corrispondenti delle tue parole tramite Supabase a OpenAI, dove viene elaborato da un modello di IA. Flype non salva il testo, ma solo il numero di richieste e caratteri per il limite di utilizzo.",
+                "Si eliges «Pulido», cada transcripción pasa con hasta 200 caracteres antes y después del cursor y los términos correspondientes de tus palabras por Supabase hasta OpenAI, donde un modelo de IA lo procesa. Flype no guarda el texto, solo el número de tus solicitudes y caracteres para el límite de uso.",
+                "Als je „Verzorgd” kiest, gaat elke transcriptie met maximaal 200 tekens voor en na de cursor en passende termen uit je woorden via Supabase naar OpenAI, waar een AI-model het verwerkt. Flype slaat de tekst niet op, alleen het aantal verzoeken en tekens voor de gebruikslimiet.",
             ],
         "Unter „Dein Konto“ kannst du dein Konto samt synchronisierter Daten endgültig löschen. Lokale Wörter und Einstellungen bleiben auf diesem Gerät.":
             [
@@ -367,10 +389,6 @@ public enum L10n {
             "Rechten opnieuw controleren",
         ],
         "Bereinigt": ["Polished", "Amélioré", "Testo rivisto", "Pulido", "Verzorgd"],
-        "Bereinigung verfügbar": [
-            "Polishing available", "Amélioration disponible", "Revisione disponibile", "Mejora disponible",
-            "Tekstverzorging beschikbaar",
-        ],
         "Bereit": ["Ready", "Prêt", "Pronto", "Listo", "Gereed"],
         "Mikrofon erlauben.": [
             "Allow the microphone.",
@@ -467,13 +485,13 @@ public enum L10n {
             "Your keyboard is ready.", "Votre clavier est prêt.", "La tastiera è pronta.", "Tu teclado está listo.",
             "Je toetsenbord is klaar.",
         ],
-        "Flype speichert deine Eingaben nicht. Nur beim Start einer Transkription liest Flype bis zu 200 Zeichen vor dem Cursor, damit der Text zum Satz passt. Sie werden danach gelöscht und gehen nur mit eingeschalteter Cloud-Bereinigung an einen Server.":
+        "Flype speichert deine Eingaben nicht. Nur beim Start einer Transkription liest Flype bis zu 200 Zeichen vor und nach dem Cursor, damit der Text zum Satz passt. Sie werden danach gelöscht und gehen nur bei „Bereinigt“ an einen Server.":
             [
-                "Flype does not store what you type. Only when a transcription starts does Flype read up to 200 characters before the cursor so the text fits the sentence. They are then deleted and only reach a server if cloud cleanup is on.",
-                "Flype ne conserve pas votre saisie. Ce n’est qu’au début d’une transcription que Flype lit jusqu’à 200 caractères avant le curseur pour adapter le texte à la phrase. Ils sont ensuite supprimés et ne sont envoyés à un serveur que si le nettoyage dans le cloud est activé.",
-                "Flype non salva ciò che digiti. Solo all’avvio di una trascrizione Flype legge fino a 200 caratteri prima del cursore, per adattare il testo alla frase. Vengono poi eliminati e raggiungono un server solo se la pulizia nel cloud è attiva.",
-                "Flype no guarda lo que escribes. Solo al iniciar una transcripción, Flype lee hasta 200 caracteres antes del cursor para que el texto encaje en la frase. Después se eliminan y solo llegan a un servidor si la limpieza en la nube está activada.",
-                "Flype slaat niet op wat je typt. Alleen bij de start van een transcriptie leest Flype maximaal 200 tekens vóór de cursor, zodat de tekst bij de zin past. Ze worden daarna verwijderd en gaan alleen naar een server als opschonen in de cloud aan staat.",
+                "Flype does not store what you type. Only when a transcription starts does Flype read up to 200 characters before and after the cursor so the text fits the sentence. They are then deleted and only reach a server if you choose “Polished”.",
+                "Flype ne conserve pas votre saisie. Ce n’est qu’au début d’une transcription que Flype lit jusqu’à 200 caractères avant et après le curseur pour adapter le texte à la phrase. Ils sont ensuite supprimés et ne sont envoyés à un serveur que si vous choisissez « Amélioré ».",
+                "Flype non salva ciò che digiti. Solo all’avvio di una trascrizione Flype legge fino a 200 caratteri prima e dopo il cursore, per adattare il testo alla frase. Vengono poi eliminati e raggiungono un server solo se scegli «Testo rivisto».",
+                "Flype no guarda lo que escribes. Solo al iniciar una transcripción, Flype lee hasta 200 caracteres antes y después del cursor para que el texto encaje en la frase. Después se eliminan y solo llegan a un servidor si eliges «Pulido».",
+                "Flype slaat niet op wat je typt. Alleen bij de start van een transcriptie leest Flype maximaal 200 tekens voor en na de cursor, zodat de tekst bij de zin past. Ze worden daarna verwijderd en gaan alleen naar een server als je „Verzorgd” kiest.",
             ],
         "Deine Worte": ["Your words", "Vos mots", "Le tue parole", "Tus palabras", "Jouw woorden"],
         "Deine Worte bleiben deine.": [
@@ -550,13 +568,6 @@ public enum L10n {
             "La mejora no está disponible. Tu texto original está listo.",
             "Tekstverzorging is niet beschikbaar. Je oorspronkelijke tekst is klaar.",
         ],
-        "Die Bereinigung unterstützt diese Sprache momentan nicht.": [
-            "Polishing is not currently available for this language.",
-            "L’amélioration n’est pas disponible pour cette langue actuellement.",
-            "La revisione non è attualmente disponibile per questa lingua.",
-            "La mejora no está disponible actualmente para este idioma.",
-            "De tekstverzorging is momenteel niet beschikbaar voor deze taal.",
-        ],
         "Parakeet ist voreingestellt und arbeitet lokal auf deinem Gerät. Die Apple-Spracherkennung steht als Alternative bereit, sofern dein Gerät sie unterstützt.":
             [
                 "Parakeet is the default and works locally on your device. Apple recognition is available as an alternative.",
@@ -565,13 +576,6 @@ public enum L10n {
                 "Parakeet es la opción predeterminada y funciona localmente en tu dispositivo. El reconocimiento de Apple está disponible como alternativa.",
                 "Parakeet is de standaard en werkt lokaal op je apparaat. Apple-herkenning is beschikbaar als alternatief.",
             ],
-        "Die optionale Bereinigung braucht Apple Intelligence. Wörtliche Transkription bleibt auch ohne sie möglich.": [
-            "Optional polishing needs Apple Intelligence. Verbatim transcription works without it.",
-            "L’amélioration facultative nécessite Apple Intelligence. La transcription mot à mot fonctionne sans.",
-            "La revisione facoltativa richiede Apple Intelligence. La trascrizione fedele funziona anche senza.",
-            "La mejora opcional requiere Apple Intelligence. La transcripción literal funciona sin ella.",
-            "Optionele tekstverzorging vereist Apple Intelligence. Letterlijke transcriptie werkt ook zonder.",
-        ],
         "Transkription beenden": [
             "Finish transcription", "Terminer la transcription", "Termina trascrizione", "Terminar transcripción",
             "Transcriptie stoppen",
@@ -1063,11 +1067,6 @@ public enum L10n {
             "Step by step", "Étape par étape", "Passo dopo passo", "Paso a paso", "Stap voor stap",
         ],
         "Senden": ["Send", "Envoyer", "Invia", "Enviar", "Versturen"],
-        "Setzt Satzzeichen und lässt Füllwörter weg.": [
-            "Adds punctuation and removes filler words.", "Ajoute la ponctuation et retire les hésitations.",
-            "Aggiunge la punteggiatura e toglie i riempitivi.", "Añade puntuación y elimina muletillas.",
-            "Voegt leestekens toe en laat stopwoorden weg.",
-        ],
         "Speichern": ["Save", "Enregistrer", "Salva", "Guardar", "Opslaan"],
         "Sprache für Menüs und Hinweise.": [
             "The language of menus and messages.", "La langue des menus et des messages.",
@@ -2018,13 +2017,6 @@ public enum L10n {
             "L’accesso o la sincronizzazione sono ancora in configurazione. Riprova più tardi.",
             "El inicio de sesión o la sincronización aún se están configurando. Inténtalo más tarde.",
             "Aanmelden of synchroniseren wordt nog ingesteld. Probeer het later opnieuw.",
-        ],
-        "Diese Transkription ist für die lokale Bereinigung zu lang. Der Originaltext bleibt erhalten.": [
-            "This transcription is too long for local polishing. The original text is kept.",
-            "Cette transcription est trop longue pour l’amélioration locale. Le texte original est conservé.",
-            "Questa trascrizione è troppo lunga per la revisione locale. Il testo originale viene mantenuto.",
-            "Esta transcripción es demasiado larga para la mejora local. El texto original se conserva.",
-            "Deze transcriptie is te lang voor lokale opschoning. De originele tekst blijft behouden.",
         ],
         "Die KI hat keinen Text zurückgegeben. Der Originaltext bleibt erhalten.": [
             "The AI returned no text. The original text is kept.",

@@ -247,7 +247,8 @@ private struct MacHomeView: View {
                 } label: {
                     FlypeRow(
                         title: "Dein Schreibstil", symbol: "sparkles",
-                        detail: (DictationMode(rawValue: mode) ?? .cleaned).title)
+                        detail: (mode == DictationMode.cleaned.rawValue && cloudConsent && account.session != nil
+                            ? DictationMode.cleaned : .verbatim).title)
                 }.buttonStyle(.plain)
                 Divider()
                 Button {
@@ -331,23 +332,8 @@ private struct MacHomeView: View {
     private var settings: some View {
         Form {
             Section(L10n.text("Dein Schreibstil")) {
-                Picker(L10n.text("Transkriptionen"), selection: $mode) {
-                    Text(L10n.text("Wörtlich")).tag("verbatim")
-                    Text(L10n.text("Bereinigt")).tag("cleaned")
-                }.pickerStyle(.segmented).disabled(dictation.recording || dictation.busy)
-                if mode == DictationMode.cleaned.rawValue {
-                    Text(
-                        L10n.text("Setzt Satzzeichen und lässt Füllwörter weg.")
-                    ).font(.caption).foregroundStyle(.secondary)
-                }
-                if !(cloudConsent && account.session != nil),
-                    let explanation = TextCleanupService.availabilityMessage()
-                {
-                    Text(L10n.text(explanation)).font(.caption).foregroundStyle(.secondary)
-                }
-                if mode == DictationMode.cleaned.rawValue {
-                    CloudCleanupToggle(account: account).disabled(dictation.recording || dictation.busy)
-                }
+                CleanupModePicker(account: account, noteFont: .caption)
+                    .disabled(dictation.recording || dictation.busy)
             }
             if !MacEnvironment.isSandboxed {
                 Section(L10n.text("Mikrofontaste")) {

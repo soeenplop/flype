@@ -49,7 +49,9 @@ Beispiele (precedingText + transcription → Ausgabe): ‹Das› + ‹Klappt ja 
 Beispiele (precedingText + transcription + followingText → Ausgabe): ‹Ich komme› + ‹Morgen.› + ‹zum Essen.› → ‹morgen›; ‹Wir treffen uns› + ‹Am Freitag.› + ‹, wenn es passt.› → ‹am Freitag›; ‹Bitte bring› + ‹Die Unterlagen mit.› + ‹und den Laptop.› → ‹die Unterlagen mit›; ‹Danke.› + ‹Bis morgen› + ‹Viele Grüße› → ‹Bis morgen.›
 
 Bereinigung:
-Ergänze Interpunktion. Korrigiere falsche Großschreibung mitten im Satz: Satzanfänge, Namen und Substantive bleiben groß, andere Wörter schreibst du klein. Beispiel: ‹Ich komme Morgen um Zehn Uhr zu Anna.› → ‹Ich komme morgen um zehn Uhr zu Anna.› Setze Absätze nur bei längeren Texten mit klarem Themenwechsel. Entferne eindeutige Füllwörter und versehentliche Wiederholungen.
+Ergänze Interpunktion. Korrigiere falsche Großschreibung mitten im Satz: Satzanfänge, Namen und Substantive bleiben groß, andere Wörter schreibst du klein. Beispiel: ‹Ich komme Morgen um Zehn Uhr zu Anna.› → ‹Ich komme morgen um zehn Uhr zu Anna.›
+Die Spracherkennung macht viele Fehler, und du kennst die Sprache besser. Korrigiere deshalb Rechtschreibung, Zusammen- und Getrenntschreibung, Grammatik und Wörter, die offensichtlich falsch erkannt wurden und deren richtige Form aus dem Zusammenhang eindeutig hervorgeht. Beispiel: ‹Alles klar, danke schön. Ich hoffe das es Dir gut geht und wir uns bald wieder sehen.› → ‹Alles klar, dankeschön. Ich hoffe, dass es dir gut geht und wir uns bald wiedersehen.›
+Setze Absätze nur bei längeren Texten mit klarem Themenwechsel. Entferne eindeutige Füllwörter und versehentliche Wiederholungen.
 
 Selbstkorrekturen:
 Ersetze bei klaren Selbstkorrekturen nur die kleinste zurückgenommene Passage durch die Korrektur und entferne das Korrektursignal: Bei „ein ähm nein zwei Häuser“ wird nur „ein“ zu „zwei“. Der Text davor und danach bleibt vollständig erhalten. Lasse niemals zwei widersprüchliche Angaben nebeneinander stehen.

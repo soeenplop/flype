@@ -39,7 +39,7 @@ Ongoing: `APPLE_CLIENT_SECRET` is a JWT valid for at most six months and must be
 ## Review risks
 
 - **Rule 4.4.1 "Launch other apps besides Settings":** The keyboard's microphone opens Flype, because a keyboard extension may not record. This is the biggest rejection risk. The review notes explain it, but a rejection remains possible. Recording would then have to start from the app.
-- **Rule 4.4.1 "Collect user activity only to enhance the functionality":** When a transcription starts, the keyboard reads up to 200 characters before the cursor. This only continues the started sentence, and the notes say so openly.
+- **Rule 4.4.1 "Collect user activity only to enhance the functionality":** When a transcription starts, the keyboard reads up to 200 characters before and after the cursor. This only fits the text into the sentence, and the notes say so openly.
 - **Rule 5.1.2 (i) Third-party AI:** The dialog appears only after signing in and turning it on. Reviewers have to find it, so the notes give the path.
 - **Rule 2.5.4 Background modes:** Background audio serves the running recording and the standby between transcriptions. Use the notes below if asked.
 
@@ -53,9 +53,9 @@ Ongoing: `APPLE_CLIENT_SECRET` is a JWT valid for at most six months and must be
 >
 > Background audio: the microphone stays active between transcriptions only after the user started it. iOS shows the orange indicator, and the session ends on device lock, after five idle minutes or through a button in the app. No audio is stored between transcriptions and no audio leaves the device.
 >
-> Full Access is used to hand transcribed text from the app to the keyboard and to read the personal dictionary. When a transcription starts, the keyboard also passes up to 200 characters before the cursor to the app, so the text can continue a sentence the user started typing. This text is deleted after the transcription. Other keystrokes are not stored or transmitted.
+> Full Access is used to hand transcribed text from the app to the keyboard and to read the personal dictionary. When a transcription starts, the keyboard also passes up to 200 characters before and after the cursor to the app, so the text can fit into a sentence the user is typing. This text is deleted after the transcription. Other keystrokes are not stored or transmitted.
 >
-> Optional cloud cleanup: by default, cleanup runs on the device with Apple's language model. To test the cloud option, sign in under Dein Konto, then open Einstellungen and turn on „Mit OpenAI in der Cloud bereinigen“ in the Dein Schreibstil section. A dialog names OpenAI and the data sent and asks for permission first. When on, the transcribed text, up to 200 characters before the cursor and matching terms from the personal dictionary go through our Supabase function to OpenAI. Recordings are never sent. If the service is unavailable, the app uses the on-device model.
+> Optional cleanup: by default, Flype inserts the recognized text verbatim. Cleanup runs in the cloud. To test it, sign in under Dein Konto, then open Einstellungen and choose „Bereinigt“ in the Dein Schreibstil section. A dialog names OpenAI and the data sent and asks for permission first. When on, the transcribed text, up to 200 characters before and after the cursor and matching terms from the personal dictionary go through our Supabase function to OpenAI. Recordings are never sent. If the service is unavailable, the app inserts the recognized text unchanged.
 >
 > Account deletion: Dein Konto > Konto löschen.
 
@@ -91,8 +91,8 @@ The German listing stays in German, because that is how it will appear in the st
 >
 > - Mikrofon antippen, sprechen, stoppen: Der Text steht im Textfeld.
 > - Parakeet oder Apple-Spracherkennung, beide lokal
-> - Bereinigung auf Wunsch: setzt Satzzeichen, lässt Füllwörter weg und führt angefangene Sätze fort
-> - Die Bereinigung läuft auf dem Gerät. Optional und nur nach deiner Zustimmung kann sie mit Konto über OpenAI laufen; dann wird der Text dorthin übertragen.
+> - Bereinigung auf Wunsch: korrigiert Satzzeichen, Rechtschreibung und Grammatik, lässt Füllwörter weg und führt angefangene Sätze fort
+> - Die Bereinigung läuft mit Konto und nur nach deiner Zustimmung über OpenAI; dann wird der Text dorthin übertragen.
 > - Persönliches Wörterbuch für Namen und Fachbegriffe
 > - Vertraute Tastatur mit Wortvorschlägen und Umlauten
 > - Deutsch, Englisch, Französisch, Italienisch, Spanisch und Niederländisch

@@ -2,7 +2,6 @@ import FlypeCore
 
 #if DEBUG
     import Foundation
-    import FoundationModels
     import UIKit
 
     @MainActor
@@ -45,47 +44,7 @@ import FlypeCore
                 }
                 return true
             }
-            guard ProcessInfo.processInfo.arguments.contains("--verify-local-cleanup") else { return false }
-            Task {
-                UIApplication.shared.isIdleTimerDisabled = true
-                defer { UIApplication.shared.isIdleTimerDisabled = false }
-                guard TextCleanupService.availabilityMessage() == nil else {
-                    print("FLYPE_CLEANUP_DIAGNOSTIC available=false")
-                    return
-                }
-                print(
-                    "FLYPE_CLEANUP_DIAGNOSTIC available=true mode=\(DictationOptions.current().mode.rawValue) build=\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") ?? "unknown")"
-                )
-                let service = TextCleanupService()
-                let examples = [
-                    "Hallo Anna äh ich komme morgen bitte bring die Unterlagen mit",
-                    "Ich komme nicht morgen sondern am Freitag",
-                    "Bitte überweise 15 Euro an Anna",
-                    "Hallo Anna ich komme um zehn nein um elf",
-                    "drei nein vier Häuser",
-                    "sieben äh nein acht Wohnungen",
-                ]
-                for (index, text) in examples.enumerated() {
-                    let start = ProcessInfo.processInfo.systemUptime
-                    do {
-                        let result = try await service.clean(text, dictionary: DictionarySnapshot())
-                        let expected = index == 4 ? "vier Häuser" : index == 5 ? "acht Wohnungen" : nil
-                        let actual = result.lowercased().split(whereSeparator: { !$0.isLetter }).joined(
-                            separator: " ")
-                        let matched = expected.map { actual == $0.lowercased() } ?? true
-                        print(
-                            "FLYPE_CLEANUP_MATCH index=\(index) matched=\(matched)")
-                        print(
-                            "FLYPE_CLEANUP_CASE index=\(index) success=true characters=\(result.count) seconds=\(ProcessInfo.processInfo.systemUptime - start)"
-                        )
-                    } catch {
-                        let error = error as NSError
-                        print(
-                            "FLYPE_CLEANUP_CASE index=\(index) success=false domain=\(error.domain) code=\(error.code)")
-                    }
-                }
-            }
-            return true
+            return false
         }
     }
 #endif

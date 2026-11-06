@@ -18,6 +18,7 @@ struct HomeView: View {
     @State private var selectedTab = 0
     @State private var pendingStartURL: URL?
     @AppStorage("dictationMode") private var mode = "cleaned"
+    @AppStorage(CloudCleanup.consentKey) private var cloudConsent = false
     @AppStorage("speechProvider") private var provider = SpeechProvider.parakeet.rawValue
 
     @State private var showingAccount = false
@@ -58,7 +59,9 @@ struct HomeView: View {
                         } label: {
                             FlypeRow(
                                 title: "Dein Schreibstil", symbol: "sparkles",
-                                detail: (DictationMode(rawValue: mode) ?? .cleaned).title)
+                                detail: (mode == DictationMode.cleaned.rawValue && cloudConsent
+                                    && account.session != nil
+                                    ? DictationMode.cleaned : .verbatim).title)
                         }.buttonStyle(.plain)
                         Divider()
                         Button {

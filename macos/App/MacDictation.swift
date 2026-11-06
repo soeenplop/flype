@@ -206,10 +206,12 @@ final class MacDictation: ObservableObject {
                 original = text
                 text = dictionary.applyingAliases(to: text)
                 text = try await correction.correct(text, file: file, dictionary: dictionary).text
-                if options.mode == .cleaned {
+                if AccountController.cleanupActive(mode: options.mode) {
                     overlay.setStage(.cleaning)
                     do {
-                        let token = try? await AccountController.cloudCleanupToken()
+                        guard let token = try await AccountController.cloudCleanupToken() else {
+                            throw SupabaseAPI.Failure.unauthorized
+                        }
                         text = try await TextCleanupService().clean(
                             text, dictionary: dictionary, language: options.language, cloudToken: token,
                             fieldContext: fieldContext, followingText: followingText)

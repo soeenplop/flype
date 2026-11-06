@@ -3,7 +3,7 @@ set -euo pipefail
 cd "${0:A:h:h}"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 xcrun swift-format lint --strict --recursive \
-    ios/App ios/Keyboard macos/App macos/scripts/CleanupProbe.swift \
+    ios/App ios/Keyboard macos/App \
     shared/App shared/FlypeCore shared/FlypeSpeech/Sources Package.swift
 python3 - <<'PY'
 import ast
