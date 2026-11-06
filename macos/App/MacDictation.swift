@@ -176,6 +176,7 @@ final class MacDictation: ObservableObject {
         let correction = dictionaryCorrection
         destination = destination?.refreshed()
         let fieldContext = destination?.textBeforeCursor()
+        let followingText = destination?.textAfterCursor()
         // Only the length, never the text: shows whether the target app exposes what is in front of the cursor.
         let id = operation
         recording = false
@@ -211,7 +212,7 @@ final class MacDictation: ObservableObject {
                         let token = try? await AccountController.cloudCleanupToken()
                         text = try await TextCleanupService().clean(
                             text, dictionary: dictionary, language: options.language, cloudToken: token,
-                            fieldContext: fieldContext)
+                            fieldContext: fieldContext, followingText: followingText)
                     } catch is CancellationError { throw CancellationError() } catch {
                         guard operation == id else { return }
                         cleanupNotice =
@@ -233,7 +234,8 @@ final class MacDictation: ObservableObject {
                     status = "Dein Text liegt in der Zwischenablage. Füge ihn mit ⌘V ein."
                 } else if let destination {
                     let separator = DictationFieldContext.separator(before: text, after: fieldContext)
-                    let problem = await destination.insert(separator + text + " ")
+                    let trailing = DictationFieldContext.trailingSeparator(after: text, following: followingText)
+                    let problem = await destination.insert(separator + text + trailing)
                     guard operation == id, !Task.isCancelled else { return }
                     if let problem {
                         status = problem

@@ -135,6 +135,15 @@ struct TextDestination {
         return text.isEmpty ? nil : DictationFieldContext.tail(of: text)
     }
 
+    /// Only the start is read, so a dictation can end in the middle of a sentence that goes on after the cursor.
+    func textAfterCursor() -> String? {
+        guard kind == .textElement, matchesCurrentFocus(), let value = Self.string(anchor, kAXValueAttribute),
+            let selection = selectedRange(), NSMaxRange(selection) <= (value as NSString).length
+        else { return nil }
+        let text = (value as NSString).substring(from: NSMaxRange(selection))
+        return text.isEmpty ? nil : DictationFieldContext.head(of: text)
+    }
+
     private func selectedRange() -> NSRange? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(anchor, kAXSelectedTextRangeAttribute as CFString, &value) == .success,

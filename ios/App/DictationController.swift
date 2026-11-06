@@ -270,7 +270,7 @@ final class DictationController: NSObject, ObservableObject {
                     let token = try? await AccountController.cloudCleanupToken()
                     return try await service.clean(
                         wordText, dictionary: snapshot, language: language, cloudToken: token,
-                        fieldContext: fieldContext)
+                        fieldContext: fieldContext?.text, followingText: fieldContext?.following)
                 }
                 cleanupTask = task
                 watchdog = Task { [weak self] in

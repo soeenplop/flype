@@ -28,8 +28,35 @@ final class DictationFieldContextTests: XCTestCase {
         let store = store()
         let id = UUID()
         try store.save(DictationFieldContext(requestID: id, text: "Ich gehe heute"))
-        XCTAssertEqual(store.take(requestID: id), "Ich gehe heute")
+        XCTAssertEqual(store.take(requestID: id)?.text, "Ich gehe heute")
         XCTAssertNil(store.take(requestID: id))
+    }
+    func testTheTextAfterTheCursorIsKeptFromItsStart() throws {
+        let store = store()
+        let id = UUID()
+        let following = "zum Essen." + String(repeating: "ä", count: 200)
+        try store.save(DictationFieldContext(requestID: id, text: "", following: following))
+        let context = try XCTUnwrap(store.take(requestID: id))
+        XCTAssertEqual(context.text, "")
+        XCTAssertEqual(context.following, String(following.prefix(200)))
+        XCTAssertNil(DictationFieldContext(requestID: id, text: "Das").following)
+    }
+    func testAContextFromAnOlderKeyboardStillReads() throws {
+        let id = UUID()
+        let data = Data(#"{"requestID":"\#(id.uuidString)","text":"Das","createdAt":0}"#.utf8)
+        let context = try JSONDecoder().decode(DictationFieldContext.self, from: data)
+        XCTAssertEqual(context.text, "Das")
+        XCTAssertNil(context.following)
+    }
+    func testTheSpaceAfterADictationDependsOnTheFollowingText() {
+        for (following, expected) in [
+            (nil, " "), ("", " "), ("zum Essen.", " "), (" zum Essen.", ""), ("\nNeu", ""), (", wenn", ""),
+            (".", ""),
+        ] as [(String?, String)] {
+            XCTAssertEqual(
+                DictationFieldContext.trailingSeparator(after: "morgen", following: following), expected,
+                "\(following ?? "nil")")
+        }
     }
     func testAnotherDictationCannotReadItAndNothingStays() throws {
         let store = store()

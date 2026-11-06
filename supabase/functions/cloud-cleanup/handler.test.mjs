@@ -44,6 +44,8 @@ test('invalid requests, missing configuration and failed auth never reach OpenAI
     [{}, { ...valid, terms: [1] }, 'POST', 400],
     [{}, { ...valid, context: 7 }, 'POST', 400],
     [{}, { ...valid, context: 'x'.repeat(401) }, 'POST', 400],
+    [{}, { ...valid, following: 7 }, 'POST', 400],
+    [{}, { ...valid, following: 'x'.repeat(401) }, 'POST', 400],
     [{}, oversized, 'POST', 400],
     [{ quotaStatus: 401 }, valid, 'POST', 401],
     [{ quotaStatus: 403 }, valid, 'POST', 401],
@@ -99,6 +101,18 @@ test('the text before the cursor reaches OpenAI as data and counts toward the qu
   assert.deepEqual(JSON.parse(f.calls.quota[0].options.body), { p_characters: size });
   assert.equal(JSON.parse(f.calls.openAI[0].input).precedingText, 'Ich gehe heute');
   assert.match(f.calls.openAI[0].instructions, /‹Das› \+ ‹Klappt ja schon mal\.› → ‹klappt ja schon mal\.›/);
+  f.restore();
+});
+
+test('the text after the cursor reaches OpenAI as data and counts toward the quota', async () => {
+  const f = fixture();
+  assert.equal((await f.invoke({ ...valid, context: 'Ich komme', following: 'zum Essen.' })).status, 200);
+  const size = new TextEncoder().encode(valid.text + 'Flype' + 'Ich komme' + 'zum Essen.').length;
+  assert.deepEqual(JSON.parse(f.calls.quota[0].options.body), { p_characters: size });
+  const input = JSON.parse(f.calls.openAI[0].input);
+  assert.equal(input.precedingText, 'Ich komme');
+  assert.equal(input.followingText, 'zum Essen.');
+  assert.match(f.calls.openAI[0].instructions, /‹Ich komme› \+ ‹Morgen\.› \+ ‹zum Essen\.› → ‹morgen›/);
   f.restore();
 });
 

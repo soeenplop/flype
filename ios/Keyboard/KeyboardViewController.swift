@@ -1616,7 +1616,9 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     /// Dictation still works without it, so a failure here must not stop the start.
     private func saveFieldContext(requestID: UUID) {
         try? DictationFieldContextStore.shared().save(
-            DictationFieldContext(requestID: requestID, text: textDocumentProxy.documentContextBeforeInput ?? ""))
+            DictationFieldContext(
+                requestID: requestID, text: textDocumentProxy.documentContextBeforeInput ?? "",
+                following: textDocumentProxy.documentContextAfterInput ?? ""))
     }
 
     private func controlSession() {
@@ -1755,7 +1757,10 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             }
             insertionPermit = nil
             let before = textDocumentProxy.documentContextBeforeInput
-            insertText(DictationFieldContext.separator(before: claimed.text, after: before) + claimed.text + " ")
+            let after = textDocumentProxy.documentContextAfterInput
+            insertText(
+                DictationFieldContext.separator(before: claimed.text, after: before) + claimed.text
+                    + DictationFieldContext.trailingSeparator(after: claimed.text, following: after))
             updateAppearance()
         } catch {
             lastError = "Einfügen nicht möglich. Die Transkription bleibt in Flype."

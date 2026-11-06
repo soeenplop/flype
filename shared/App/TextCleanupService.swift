@@ -6,7 +6,7 @@ import FoundationModels
 private struct CleanedDictation {
     @Guide(
         description:
-            "Nur die bereinigte Transkription in der Originalsprache, ohne Vorbemerkung, Erklärung oder Anführungszeichen."
+            "Nur die bereinigte Transkription in der Originalsprache, ohne Vorbemerkung, Erklärung oder Anführungszeichen und ohne Wörter aus precedingText oder followingText."
     )
     var text: String
 }
@@ -26,12 +26,16 @@ actor TextCleanupService {
     /// With a token the text goes to the cloud, and otherwise it stays on this device.
     func clean(
         _ text: String, dictionary: DictionarySnapshot, language: FlypeLanguage = .de, cloudToken: String? = nil,
-        fieldContext: String? = nil
+        fieldContext: String? = nil, followingText: String? = nil
     ) async throws -> String {
         // Bound prompt + output conservatively for the iOS 26 context window. Never truncate input.
         let terms = dictionary.relevantTerms(for: text)
-        let context = fieldContext.map(DictationFieldContext.tail)
-        guard text.utf8.count + terms.joined(separator: ", ").utf8.count + (context?.utf8.count ?? 0) <= 5_000 else {
+        let context = fieldContext.map(DictationFieldContext.tail).flatMap { $0.isEmpty ? nil : $0 }
+        let following = followingText.map(DictationFieldContext.head).flatMap { $0.isEmpty ? nil : $0 }
+        guard
+            text.utf8.count + terms.joined(separator: ", ").utf8.count + (context?.utf8.count ?? 0)
+                + (following?.utf8.count ?? 0) <= 5_000
+        else {
             throw CleanupError.tooLong
         }
         var cloudFailure: Error?
@@ -39,7 +43,8 @@ actor TextCleanupService {
         if let cloudToken {
             do {
                 cloudResult = try await SupabaseAPI().cleanDictation(
-                    token: cloudToken, text: text, terms: terms, language: language, context: context)
+                    token: cloudToken, text: text, terms: terms, language: language, context: context,
+                    following: following)
             } catch { cloudFailure = error }
             try Task.checkCancellation()
         }
@@ -51,7 +56,8 @@ actor TextCleanupService {
             if let message = Self.availabilityMessage(language: language) {
                 throw cloudFailure ?? CleanupError.unavailable(message)
             }
-            result = try await generateLocally(text, terms: terms, language: language, context: context)
+            result = try await generateLocally(
+                text, terms: terms, language: language, context: context, following: following)
         }
         try Task.checkCancellation()
         let cleaned = result.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -59,12 +65,13 @@ actor TextCleanupService {
         return cleaned
     }
     private func generateLocally(
-        _ text: String, terms: [String], language: FlypeLanguage, context: String?
+        _ text: String, terms: [String], language: FlypeLanguage, context: String?, following: String?
     ) async throws -> String {
         let instructions = CleanupPrompt.instructions(language: language)
         let session = LanguageModelSession(instructions: instructions)
         var input: [String: Any] = ["transcription": text, "preferredSpellings": terms]
         if let context { input["precedingText"] = context }
+        if let following { input["followingText"] = following }
         let data = try JSONSerialization.data(withJSONObject: input)
         let response = try await session.respond(
             to: String(decoding: data, as: UTF8.self), generating: CleanedDictation.self,

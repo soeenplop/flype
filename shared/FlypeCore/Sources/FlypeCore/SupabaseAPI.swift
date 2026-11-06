@@ -146,19 +146,22 @@ public struct SupabaseAPI: Sendable {
             data: JSONEncoder().encode(Write(expectedRevision: revision, settings: settings)))
     }
     public func cleanDictation(
-        token: String, text: String, terms: [String], language: FlypeLanguage, context: String? = nil
+        token: String, text: String, terms: [String], language: FlypeLanguage, context: String? = nil,
+        following: String? = nil
     ) async throws -> String {
         struct Request: Encodable {
             let text: String
             let terms: [String]
             let language: String
             let context: String?
+            let following: String?
         }
         struct Result: Decodable { let text: String }
         let result: Result = try await send(
             path: "functions/v1/cloud-cleanup", token: token,
             data: JSONEncoder().encode(
-                Request(text: text, terms: terms, language: language.rawValue, context: context)),
+                Request(
+                    text: text, terms: terms, language: language.rawValue, context: context, following: following)),
             // Leaves time for the model on this device when the server does not answer.
             timeout: 10)
         return result.text
