@@ -17,6 +17,8 @@ final class DictationController: NSObject, ObservableObject {
     @Published private(set) var sessionActive = false
     private var sessionID = UUID()
     private var sessionTask: Task<Void, Never>?
+    private var commandObservation: SessionSignalObservation?
+    private var signaledState: (phase: VoiceSessionState.Phase, dictationID: UUID)?
     private var lastInteraction = Date()
     private var recorder: MicrophoneCapture?
     private var audioURL: URL?
@@ -344,6 +346,7 @@ final class DictationController: NSObject, ObservableObject {
             let store = try ResultStore.shared()
             let result = DictationResult(text: transcript, keyboardRequestID: keyboardRequestID)
             try store.publish(result)
+            SessionSignal.state.post()
             #if DEBUG
                 print(
                     "FLYPE_HANDOFF_PUBLISHED directory=\(store.diagnosticDirectory.path) readable=\(try store.pending()?.id == result.id)"
@@ -436,6 +439,8 @@ final class DictationController: NSObject, ObservableObject {
         sessionActive = false
         sessionTask?.cancel()
         sessionTask = nil
+        commandObservation = nil
+        signaledState = nil
         try? VoiceSessionStore.shared().clear()
         operationID = UUID()
         watchdog?.cancel()
@@ -500,62 +505,70 @@ final class DictationController: NSObject, ObservableObject {
             while !Task.isCancelled {
                 let interval = self?.phase == .recording ? 33 : 250
                 try? await Task.sleep(for: .milliseconds(interval))
-                guard !Task.isCancelled, let self, self.sessionActive else { return }
-                do {
-                    guard self.recorder?.isRunning == true else {
-                        self.interruptAudio()
-                        return
-                    }
-                    let store = try VoiceSessionStore.shared()
-                    if let command = try store.claim(sessionID: self.sessionID) {
-                        #if DEBUG
-                            print("FLYPE_SESSION_COMMAND action=\(command.action.rawValue)")
-                        #endif
-                        self.lastInteraction = Date()
-                        switch command.action {
-                        case .start:
-                            if !self.busy,
-                                let request = try KeyboardStartStore.shared().consumeRequest(id: command.requestID)
-                            {
-                                self.start(fromKeyboard: true, keyboardRequestID: request.id)
-                            }
-                        case .stop:
-                            if self.phase == .recording,
-                                command.requestID == (self.keyboardRequestID ?? self.operationID)
-                            {
-                                self.startedFromKeyboard = true
-                                self.keyboardRequestID = command.requestID
-                                self.finish()
-                            }
-                        case .cancel:
-                            if command.requestID == (self.keyboardRequestID ?? self.operationID) {
-                                self.discardCurrent()
-                            }
-                        case .end:
-                            self.endSession()
-                            return
-                        }
-                    }
-                    if let seen = try store.lastKeyboardSeen(), Date().timeIntervalSince(seen) >= 0,
-                        Date().timeIntervalSince(seen) < 3
+                guard !Task.isCancelled, let self, self.checkSession() else { return }
+            }
+        }
+        // The keyboard signals each command, so it does not wait for the next poll.
+        commandObservation = SessionSignal.command.observe { [weak self] in _ = self?.checkSession() }
+    }
+
+    /// Handles a pending keyboard command and refreshes the shared state. False once the session has ended.
+    private func checkSession() -> Bool {
+        guard sessionActive else { return false }
+        do {
+            guard recorder?.isRunning == true else {
+                interruptAudio()
+                return false
+            }
+            let store = try VoiceSessionStore.shared()
+            if let command = try store.claim(sessionID: sessionID) {
+                #if DEBUG
+                    print("FLYPE_SESSION_COMMAND action=\(command.action.rawValue)")
+                #endif
+                lastInteraction = Date()
+                switch command.action {
+                case .start:
+                    if !busy,
+                        let request = try KeyboardStartStore.shared().consumeRequest(id: command.requestID)
                     {
-                        self.lastInteraction = Date()
+                        start(fromKeyboard: true, keyboardRequestID: request.id)
                     }
-                    if VoiceSessionPolicy.shouldEnd(
-                        isBusy: self.busy,
-                        appIsActive: UIApplication.shared.applicationState == .active,
-                        lastInteraction: self.lastInteraction)
+                case .stop:
+                    if phase == .recording,
+                        command.requestID == (keyboardRequestID ?? operationID)
                     {
-                        self.endSession()
-                        return
+                        startedFromKeyboard = true
+                        keyboardRequestID = command.requestID
+                        finish()
                     }
-                    self.publishSession()
-                } catch {
-                    // A locked/unavailable shared container must not leave an invisible live session.
-                    self.handleProtectedDataLoss()
-                    return
+                case .cancel:
+                    if command.requestID == (keyboardRequestID ?? operationID) {
+                        discardCurrent()
+                    }
+                case .end:
+                    endSession()
+                    return false
                 }
             }
+            if let seen = try store.lastKeyboardSeen(), Date().timeIntervalSince(seen) >= 0,
+                Date().timeIntervalSince(seen) < 3
+            {
+                lastInteraction = Date()
+            }
+            if VoiceSessionPolicy.shouldEnd(
+                isBusy: busy,
+                appIsActive: UIApplication.shared.applicationState == .active,
+                lastInteraction: lastInteraction)
+            {
+                endSession()
+                return false
+            }
+            publishSession()
+            return true
+        } catch {
+            // A locked/unavailable shared container must not leave an invisible live session.
+            handleProtectedDataLoss()
+            return false
         }
     }
 
@@ -569,11 +582,17 @@ final class DictationController: NSObject, ObservableObject {
         case .cleaning: state = .cleaning
         default: state = .ready
         }
+        let dictationID = keyboardRequestID ?? operationID
         try? VoiceSessionStore.shared().publish(
             VoiceSessionState(
-                id: sessionID, phase: state, dictationID: keyboardRequestID ?? operationID,
+                id: sessionID, phase: state, dictationID: dictationID,
                 inputLevel: phase == .recording ? MicrophoneLevel.normalized(rms: Double(recorder?.level ?? 0)) : nil,
                 recordingDuration: phase == .recording ? recorder?.duration : nil))
+        // Only changes wake the keyboard. Levels during recording reach it through its own timer.
+        if signaledState?.phase != state || signaledState?.dictationID != dictationID {
+            signaledState = (state, dictationID)
+            SessionSignal.state.post()
+        }
     }
 
     private func fail(_ error: Error) {

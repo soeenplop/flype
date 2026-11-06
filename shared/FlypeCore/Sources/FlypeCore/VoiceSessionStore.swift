@@ -65,7 +65,7 @@ public final class VoiceSessionStore: @unchecked Sendable {
         }
     }
     public func send(_ command: VoiceSessionCommand, now: @autoclosure () -> Date = Date()) throws {
-        try locked {
+        let sent = try locked { () -> Bool in
             let current: VoiceSessionState? = try read("state")
             let now = now()
             guard current?.id == command.sessionID, current?.isAlive(at: now) == true else {
@@ -75,9 +75,11 @@ public final class VoiceSessionStore: @unchecked Sendable {
             // so that stopping and then cancelling right away never inserts the text.
             let existing: VoiceSessionCommand? = try read("command")
             guard existing == nil || command.action == .cancel || now.timeIntervalSince(existing!.createdAt) >= 5
-            else { return }
+            else { return false }
             try write(command, name: "command")
+            return true
         }
+        if sent { SessionSignal.command.post() }
     }
     public func claim(sessionID: UUID, now: @autoclosure () -> Date = Date()) throws -> VoiceSessionCommand? {
         try locked {

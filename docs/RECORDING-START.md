@@ -4,7 +4,7 @@ The first words must not get lost, so recording starts before anything slow happ
 
 **Mac:** Recording starts as soon as the microphone key goes down (`armed`). The 140 ms hold window then only confirms the transcription and the on-screen indicator. Short presses and key combinations cancel the prepared recording, and its file is deleted without being transcribed. Recording starts before Flype reads the target field through Accessibility and before it touches the dictionary. Releasing after a confirmed hold ends the audio immediately. The speech model may still finish loading afterwards.
 
-**iOS:** Recording starts after microphone permission and before the dictionary and speech model are prepared. Preparation is its own cancellable task. Stopping during loading closes the audio segment, and recognition then waits for the model. The return to the writing app can happen during model preparation. Cancelling or ending the session also revokes preparation, and operation IDs stop an old preparation from changing a new recording.
+**iOS:** Recording starts after microphone permission and before the dictionary and speech model are prepared. Preparation is its own cancellable task. Stopping during loading closes the audio segment, and recognition then waits for the model. The return to the writing app can happen during model preparation. App and keyboard wake each other with a Darwin notification for commands, phase changes and results. It carries no data, so the shared files stay the source of truth, and the regular polling still catches a missed signal. Cancelling or ending the session also revokes preparation, and operation IDs stop an old preparation from changing a new recording.
 
 ## Cancelling
 

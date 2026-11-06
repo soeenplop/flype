@@ -133,6 +133,23 @@ final class VoiceSessionStoreTests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testOnlyAWrittenCommandWakesTheApp() throws {
+        var signals = 0
+        let observation = SessionSignal.command.observe { signals += 1 }
+        XCTAssertNotNil(observation)
+        try withStore { store in
+            let now = Date()
+            let id = UUID()
+            try store.publish(.init(id: id, phase: .ready, dictationID: nil, now: now))
+            try store.send(.init(sessionID: id, requestID: UUID(), action: .start, now: now), now: now)
+            // A second press while the first is unprocessed is dropped, so nothing new is signalled.
+            try store.send(.init(sessionID: id, requestID: UUID(), action: .start, now: now), now: now)
+        }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        XCTAssertEqual(signals, 1)
+        _ = observation
+    }
     func testOnlyTextPhasesCountAsWorking() {
         XCTAssertTrue(VoiceSessionState.Phase.preparing.isWorking)
         XCTAssertTrue(VoiceSessionState.Phase.processing.isWorking)

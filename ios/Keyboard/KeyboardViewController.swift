@@ -45,6 +45,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private let insert = UIButton(type: .system)
     private var pending: DictationResult?
     private var refreshTimer: Timer?
+    private var stateObservation: SessionSignalObservation?
     private var deleteTimer: Timer?
     private var letterKeys: [(KeyboardKeyButton, String)] = []
     private var shiftButtons: [KeyboardKeyButton] = []
@@ -183,6 +184,8 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         synchronizeCapitalization()
         resolveHostForReturn()
         refresh()
+        // The app signals phase changes and results, so they show without waiting for the timer.
+        stateObservation = SessionSignal.state.observe { [weak self] in self?.refresh() }
         #if DEBUG
             KeyboardTouchDiagnostics.shared.logSystemGestures(from: view)
         #endif
@@ -197,6 +200,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         dismissAlternates()
         hideKeyPreview()
         refreshTimer?.invalidate()
+        stateObservation = nil
         deleteTimer?.invalidate()
         meterTimer?.invalidate()
     }
