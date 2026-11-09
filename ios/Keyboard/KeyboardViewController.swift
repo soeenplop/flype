@@ -55,6 +55,20 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private weak var alternateSource: KeyboardKeyButton?
     private weak var previewSource: KeyboardKeyButton?
     private let previewGesture = KeyboardPreviewGesture()
+    private let swipeGesture = KeyboardSwipeGesture()
+    private let swipeTrail = KeyboardSwipeTrail()
+    private let swipeEngine = SwipeTypingEngine { language in
+        Bundle.main.url(forResource: "main_\(language.rawValue)", withExtension: "combined")
+    }
+    private var swipeTask: Task<Void, Never>?
+    private var swipeAvailable = false
+    /// The last swiped word, while the cursor still sits right behind it.
+    private struct SwipeInsertion {
+        let word: String
+        let inserted: String
+        let documentID: UUID
+    }
+    private var lastSwipe: SwipeInsertion?
     private var lastShiftTap: TimeInterval = 0
     private var lastSpaceTap: TimeInterval = 0
     private struct SuggestionSelection {
@@ -138,6 +152,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         isVisible = false
         dismissAlternates()
         hideKeyPreview()
+        cancelSwipe()
         refreshTimer?.invalidate()
         meterTimer?.invalidate()
         cancelSuggestions()
@@ -199,6 +214,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         isVisible = false
         dismissAlternates()
         hideKeyPreview()
+        cancelSwipe()
         refreshTimer?.invalidate()
         stateObservation = nil
         deleteTimer?.invalidate()
@@ -288,6 +304,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             if self?.previewSource === key { self?.hideKeyPreview() }
         }
         view.addGestureRecognizer(previewGesture)
+        configureSwipeTyping()
         buildKeys()
         updateAppearance()
     }
@@ -523,6 +540,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             rows.addArrangedSubview(row)
         }
         addBottomRow()
+        prepareSwipeTyping()
     }
 
     private func updateLanguageMenu() {
@@ -1088,7 +1106,116 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
 
     private func type(_ character: String) {
         lastSpaceTap = 0
-        insertText(!symbols && uppercase ? capitalizedKey(character) : character)
+        let text = !symbols && uppercase ? capitalizedKey(character) : character
+        // A swiped word has no space behind it yet, so punctuation can attach. The next letter starts a new word.
+        let startsNewWord = currentSwipe() != nil && character.first?.isLetter == true
+        insertText(startsNewWord ? " " + text : text)
+    }
+
+    private func configureSwipeTyping() {
+        view.layer.addSublayer(swipeTrail.layer)
+        swipeGesture.canStart = { [weak self] key in self?.canStartSwipe(on: key) ?? false }
+        swipeGesture.startDistance = { [weak self] in 0.8 * (self?.swipeKeyPitch ?? 35) }
+        swipeGesture.onBegin = { [weak self] points in
+            guard let self else { return }
+            hideKeyPreview()
+            swipeTask?.cancel()
+            cancelSuggestions()
+            swipeTrail.show(points, color: .tintColor)
+        }
+        swipeGesture.onChange = { [weak self] points in self?.swipeTrail.show(points, color: .tintColor) }
+        swipeGesture.onEnd = { [weak self] points in
+            self?.swipeTrail.fadeOut()
+            self?.finishSwipe(points)
+        }
+        swipeGesture.onCancel = { [weak self] in
+            self?.swipeTrail.hide()
+            self?.scheduleSuggestions()
+        }
+        view.addGestureRecognizer(swipeGesture)
+    }
+
+    private func prepareSwipeTyping() {
+        let language = language
+        swipeAvailable =
+            !usesTabletLayout
+            && Bundle.main.url(forResource: "main_\(language.rawValue)", withExtension: "combined") != nil
+        guard swipeAvailable else { return }
+        Task { [swipeEngine] in await swipeEngine.prepare(language) }
+    }
+
+    private func canStartSwipe(on key: KeyboardKeyButton) -> Bool {
+        guard swipeAvailable, !symbols, !usesTabletLayout, alternateStrip.isHidden,
+            textDocumentProxy.keyboardType != .emailAddress, textDocumentProxy.keyboardType != .URL
+        else { return false }
+        return letterKeys.contains { $0.0 === key }
+    }
+
+    private var swipeKeyPitch: CGFloat {
+        guard let key = letterKeys.first?.0 else { return 35 }
+        return key.bounds.width + 6
+    }
+
+    private func cancelSwipe() {
+        swipeTask?.cancel()
+        swipeTrail.hide()
+    }
+
+    private func finishSwipe(_ points: [CGPoint]) {
+        guard let documentID = currentDocumentID else { return }
+        let before = textDocumentProxy.documentContextBeforeInput ?? ""
+        let after = textDocumentProxy.documentContextAfterInput ?? ""
+        let keys = Dictionary(
+            letterKeys.map { key, character in
+                (character, key.convert(CGPoint(x: key.bounds.midX, y: key.bounds.midY), to: view))
+            }, uniquingKeysWith: { first, _ in first })
+        let layout = SwipeKeyLayout(keys: keys, keyPitch: Double(swipeKeyPitch))
+        let casing: SwipeCasing = capsLock ? .allCaps : (uppercase ? .capitalized : .asListed)
+        let language = language
+        let previous = WordSuggestionContext(before: before, after: after)
+        let previousWord = previous.prefix.isEmpty ? previous.precedingWord : previous.word
+        swipeTask?.cancel()
+        swipeTask = Task { [weak self, swipeEngine] in
+            let words = await swipeEngine.candidates(
+                path: points, layout: layout, language: language,
+                previousWord: previousWord.isEmpty ? nil : previousWord, casing: casing)
+            // The user can type, move the cursor or switch fields while the worker runs.
+            guard let self, !Task.isCancelled, self.isVisible, self.language == language,
+                self.currentDocumentID == documentID,
+                (self.textDocumentProxy.documentContextBeforeInput ?? "") == before
+            else { return }
+            guard let word = words.first else {
+                self.scheduleSuggestions()
+                return
+            }
+            self.insertSwipedWord(word, alternatives: words, before: before, after: after, documentID: documentID)
+        }
+    }
+
+    private func insertSwipedWord(
+        _ word: String, alternatives: [String], before: String, after: String, documentID: UUID
+    ) {
+        let needsSpace = before.last.map { !$0.isWhitespace && !"([{„“‚‘’\"'-/".contains($0) } ?? false
+        let inserted = (needsSpace ? " " : "") + word
+        textDocumentProxy.insertText(inserted)
+        shiftPressed = false
+        lastSpaceTap = 0
+        let newBefore = before + inserted
+        synchronizeCapitalization(before: newBefore)
+        lastSwipe = SwipeInsertion(word: word, inserted: inserted, documentID: documentID)
+        // The other readings of the path, for correcting the word with one tap.
+        let context = WordSuggestionContext(before: newBefore, after: after)
+        cancelSuggestions()
+        lastSuggestionContext = context
+        suggestionDocumentID = documentID
+        renderSuggestions(suggestionsExcluded ? [] : alternatives, context: context, documentID: documentID)
+    }
+
+    private func currentSwipe() -> SwipeInsertion? {
+        guard let lastSwipe, lastSwipe.documentID == currentDocumentID,
+            textDocumentProxy.documentContextBeforeInput?.hasSuffix(lastSwipe.word) == true
+        else { return nil }
+        return lastSwipe
     }
 
     private func configureAlternates(on button: KeyboardKeyButton, character: String) {
@@ -1262,6 +1389,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private func insertText(_ text: String) {
         let before = textDocumentProxy.documentContextBeforeInput ?? ""
         textDocumentProxy.insertText(text)
+        lastSwipe = nil
         shiftPressed = false
         synchronizeCapitalization(before: before + text)
         scheduleSuggestions()
@@ -1269,8 +1397,11 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
 
     @objc private func deleteCharacter() {
         let before = textDocumentProxy.documentContextBeforeInput ?? ""
-        textDocumentProxy.deleteBackward()
-        synchronizeCapitalization(before: String(before.dropLast()))
+        // A swipe enters a word in one go, so one press takes it out again.
+        let count = currentSwipe()?.inserted.count ?? 1
+        lastSwipe = nil
+        for _ in 0..<count { textDocumentProxy.deleteBackward() }
+        synchronizeCapitalization(before: String(before.dropLast(count)))
         scheduleSuggestions()
     }
 
@@ -1407,6 +1538,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         let context = selection.context
         if !context.suffix.isEmpty { textDocumentProxy.adjustTextPosition(byCharacterOffset: context.suffix.count) }
         for _ in 0..<context.replacementCount { textDocumentProxy.deleteBackward() }
+        lastSwipe = nil
         let following = context.after.dropFirst(context.suffix.count).first
         let needsSpace = following.map { !$0.isWhitespace && !".,;:!?)]}»”".contains($0) } ?? true
         textDocumentProxy.insertText(selection.word + (needsSpace ? " " : ""))

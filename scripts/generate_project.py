@@ -50,7 +50,7 @@ for group, paths in sources.items():
 for product, filetype in (("Flype.app", "wrapper.application"), ("FlypeKeyboard.appex", "wrapper.app-extension")):
     obj(product, "PBXFileReference", explicitFileType=filetype, includeInIndex="0", path=quote(product), sourceTree="BUILT_PRODUCTS_DIR")
 obj("products", "PBXGroup", children=array([ref("Flype.app"), ref("FlypeKeyboard.appex")]), name="Products", sourceTree='"<group>"')
-obj("root", "PBXGroup", children=array([ref("group-" + f) for f in sources] + [ref("group-resources"), ref("products")]), sourceTree='"<group>"')
+obj("root", "PBXGroup", children=array([ref("group-" + f) for f in sources] + [ref("group-resources"), ref("group-wordlists"), ref("products")]), sourceTree='"<group>"')
 
 info_children = []
 for language in ("de", "en", "fr", "it", "es", "nl"):
@@ -63,6 +63,12 @@ obj("privacy-app-build", "PBXBuildFile", fileRef=ref("privacy"))
 obj("privacy-keyboard-build", "PBXBuildFile", fileRef=ref("privacy"))
 obj("group-resources", "PBXGroup", children=array([ref("localized-info"), ref("assets"), ref("privacy")]), path=quote("../shared/Resources"), sourceTree='"<group>"')
 obj("info-build", "PBXBuildFile", fileRef=ref("localized-info"))
+# Word lists for swipe typing. The keyboard finds them by language, so a new language only needs its file.
+word_lists = sorted((ROOT / "vendor/HeliBoardDictionaries").glob("*.combined"))
+for path in word_lists:
+    obj("wordlist-" + path.name, "PBXFileReference", lastKnownFileType="text", path=quote(path.name), sourceTree='"<group>"')
+    obj("wordlist-build-" + path.name, "PBXBuildFile", fileRef=ref("wordlist-" + path.name))
+obj("group-wordlists", "PBXGroup", children=array([ref("wordlist-" + p.name) for p in word_lists]), path=quote("../vendor/HeliBoardDictionaries"), sourceTree='"<group>"')
 
 base = {
     "SDKROOT": "iphoneos", "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
@@ -136,7 +142,7 @@ for target, folder, product, product_type in (
         files.append(obj(target + name, "PBXBuildFile", fileRef=ref(name)))
     obj(target + "sources", "PBXSourcesBuildPhase", buildActionMask="2147483647", files=array(files), runOnlyForDeploymentPostprocessing="0")
     obj(target + "frameworks", "PBXFrameworksBuildPhase", buildActionMask="2147483647", files=array([ref(target + "-core-link")] + ([ref("speech-link")] if target == "app" else [])), runOnlyForDeploymentPostprocessing="0")
-    obj(target + "resources", "PBXResourcesBuildPhase", buildActionMask="2147483647", files=array([ref("info-build"), ref("assets-build"), ref("privacy-app-build")]) if target == "app" else array([ref("privacy-keyboard-build")]), runOnlyForDeploymentPostprocessing="0")
+    obj(target + "resources", "PBXResourcesBuildPhase", buildActionMask="2147483647", files=array([ref("info-build"), ref("assets-build"), ref("privacy-app-build")]) if target == "app" else array([ref("privacy-keyboard-build")] + [ref("wordlist-build-" + p.name) for p in word_lists]), runOnlyForDeploymentPostprocessing="0")
     phases = [ref(target + phase) for phase in ("sources", "frameworks", "resources")]
     if target == "app": phases.append(ref("embed"))
     obj(target, "PBXNativeTarget", buildConfigurationList=ref(target + "configs"), buildPhases=array(phases), buildRules="()", dependencies=array([ref("dependency")] if target == "app" else []), name=quote(product.split(".")[0]), productName=quote(product.split(".")[0]), productReference=ref(product), productType=quote(product_type), packageProductDependencies=array([ref(target + "-core-product")] + ([ref("speech-product")] if target == "app" else [])))
