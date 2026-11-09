@@ -34,6 +34,9 @@ final class MacDictation: ObservableObject {
     private var work: Task<Void, Never>?
     private var meter: Task<Void, Never>?
     private var timeout: Task<Void, Never>?
+    /// The last paste, including its check and the clipboard restore. A newer paste waits for it,
+    /// so it never mistakes the previous dictation for the clipboard it has to restore.
+    private var lastInsertion: Task<String?, Never>?
     private let overlay = RecordingOverlay()
     init() {
         shortcut.onArm = { [weak self] in self?.startHolding(confirmed: false) }
@@ -164,6 +167,13 @@ final class MacDictation: ObservableObject {
         overlay.show { [weak self] in self?.cancel() }
         setCanCancel(true)
     }
+    /// Frees the shortcut as soon as the paste is sent instead of after checking it.
+    private func pasted(operation id: UUID) {
+        guard operation == id else { return }
+        busy = false
+        timeout?.cancel()
+        overlay.hide()
+    }
     private func setCanCancel(_ value: Bool) {
         canCancel = value
         shortcut.cancelKeyActive = value
@@ -248,8 +258,17 @@ final class MacDictation: ObservableObject {
                 } else if let destination {
                     let separator = DictationFieldContext.separator(before: text, after: fieldContext)
                     let trailing = DictationFieldContext.trailingSeparator(after: text, following: followingText)
-                    // The text is in the field once the paste is sent, so the overlay does not wait for the check.
-                    let problem = await destination.insert(separator + text + trailing) { overlay.hide() }
+                    await lastInsertion?.value
+                    guard operation == id, !Task.isCancelled else { return }
+                    let payload = separator + text + trailing
+                    let insertion = Task { [weak self] in
+                        // The text is in the field once the paste is sent. The next recording may start then,
+                        // while the paste is still being checked and the clipboard restored.
+                        await destination.insert(payload) { self?.pasted(operation: id) }
+                    }
+                    lastInsertion = insertion
+                    let problem = await insertion.value
+                    timing.report("insert", characters: text.count)
                     guard operation == id, !Task.isCancelled else { return }
                     if let problem {
                         status = problem
@@ -260,7 +279,7 @@ final class MacDictation: ObservableObject {
                     status = insertionProblem
                 }
                 guard operation == id, !Task.isCancelled else { return }
-                timing.report("insert", characters: text.count)
+                if busy { timing.report("insert", characters: text.count) }
                 busy = false
                 timeout?.cancel()
                 overlay.hide()
