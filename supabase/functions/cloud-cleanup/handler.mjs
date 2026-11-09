@@ -139,7 +139,10 @@ export function createHandler({ supabaseURL, fetch, createResponse, preconnect, 
     timings.quota = now() - started;
     if (!decision.allowed) {
       if (decision.scope === 'service') return new Response(null, { status: 503 });
-      return json(429, { scope: decision.scope }, { 'Retry-After': String(decision.retry_after ?? 60) });
+      // The apps tell a used-up free week apart from a short limit; the plan is for the same reason.
+      return json(429, { scope: decision.scope, plan: decision.plan ?? 'free' }, {
+        'Retry-After': String(decision.retry_after ?? 60),
+      });
     }
 
     let response;

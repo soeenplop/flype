@@ -51,13 +51,17 @@ public struct SupabaseAPI: Sendable {
     public init(session: URLSession = .shared) { self.session = session }
     public enum Failure: LocalizedError {
         case unauthorized, sessionExpired, rejected, unavailable, setupRequired, appleRevocationUnavailable
-        case limitReached
+        case limitReached, weeklyLimitReached
+        /// Both limits keep the original text and are explained to the person instead of a generic error.
+        public var isLimit: Bool { self == .limitReached || self == .weeklyLimitReached }
         public var errorDescription: String? {
             switch self {
             case .appleRevocationUnavailable:
                 "Die Apple-Verknüpfung konnte nicht aufgehoben werden. Dein Konto wurde nicht gelöscht. Bitte versuche es später erneut."
             case .limitReached:
                 "Das Limit für die Cloud-Bereinigung ist gerade erreicht. Dein Originaltext ist bereit."
+            case .weeklyLimitReached:
+                "Deine kostenlosen Bereinigungen für diese Woche sind aufgebraucht. Dein Originaltext ist bereit."
             case .unauthorized: "Bitte melde dich erneut an. Deine lokalen Begriffe bleiben erhalten."
             case .sessionExpired:
                 "Deine Anmeldung ist abgelaufen. Bitte melde dich erneut an. Deine lokalen Begriffe bleiben erhalten."
@@ -178,6 +182,7 @@ public struct SupabaseAPI: Sendable {
         _ = try? await session.data(for: request)
     }
     private struct Empty: Decodable {}
+    private struct LimitBody: Decodable { let scope: String? }
     private func request<T: Decodable>(path: String, token: String? = nil, body: [String: String]) async throws -> T {
         try await send(path: path, token: token, data: JSONEncoder().encode(body))
     }
@@ -196,7 +201,10 @@ public struct SupabaseAPI: Sendable {
         if status == 401 { throw Failure.unauthorized }
         if status == 400 { throw Failure.rejected }
         if status == 404 { throw Failure.setupRequired }
-        if status == 429 { throw Failure.limitReached }
+        if status == 429 {
+            let scope = (try? JSONDecoder().decode(LimitBody.self, from: responseData))?.scope
+            throw scope == "week" ? Failure.weeklyLimitReached : Failure.limitReached
+        }
         guard (200...299).contains(status) else { throw Failure.unavailable }
         return try JSONDecoder().decode(T.self, from: responseData.isEmpty ? Data("{}".utf8) : responseData)
     }

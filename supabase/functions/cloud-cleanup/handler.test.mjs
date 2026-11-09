@@ -93,6 +93,14 @@ test('limits answer without contacting OpenAI', async () => {
   assert.equal(f.calls.openAI.length, 0);
   f.restore();
 
+  f = fixture({ quota: { allowed: false, scope: 'week', plan: 'free', retry_after: 86400 } });
+  const weekly = await f.invoke();
+  assert.equal(weekly.status, 429);
+  assert.equal(weekly.headers.get('Retry-After'), '86400');
+  assert.deepEqual(await weekly.json(), { scope: 'week', plan: 'free' });
+  assert.equal(f.calls.openAI.length, 0);
+  f.restore();
+
   f = fixture({ quota: { allowed: false, scope: 'service' } });
   assert.equal((await f.invoke()).status, 503);
   assert.equal(f.calls.openAI.length, 0);

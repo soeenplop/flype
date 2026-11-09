@@ -240,9 +240,8 @@ final class MacDictation: ObservableObject {
                     } catch is CancellationError { throw CancellationError() } catch {
                         guard operation == id else { return }
                         cleanupNotice =
-                            (error as? SupabaseAPI.Failure) == .limitReached
-                            ? SupabaseAPI.Failure.limitReached.errorDescription
-                            : "Die Bereinigung ist gerade nicht verfügbar. Dein Originaltext ist bereit."
+                            (error as? SupabaseAPI.Failure).flatMap { $0.isLimit ? $0.errorDescription : nil }
+                            ?? "Die Bereinigung ist gerade nicht verfügbar. Dein Originaltext ist bereit."
                     }
                     timing.mark("cleanup")
                 }

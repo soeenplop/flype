@@ -114,6 +114,13 @@ public enum L10n {
             "Activar",
             "Inschakelen",
         ],
+        "Deine kostenlosen Bereinigungen für diese Woche sind aufgebraucht. Dein Originaltext ist bereit.": [
+            "Your free cleanups for this week are used up. Your original text is ready.",
+            "Vos nettoyages gratuits de cette semaine sont épuisés. Votre texte d’origine est prêt.",
+            "Le pulizie gratuite di questa settimana sono esaurite. Il testo originale è pronto.",
+            "Ya has usado tus limpiezas gratuitas de esta semana. Tu texto original está listo.",
+            "Je gratis opschoonbeurten voor deze week zijn op. Je originele tekst staat klaar.",
+        ],
         "Das Limit für die Cloud-Bereinigung ist gerade erreicht. Dein Originaltext ist bereit.": [
             "The cloud cleanup limit has been reached for now. Your original text is ready.",
             "La limite du nettoyage dans le cloud est atteinte pour le moment. Votre texte d’origine est prêt.",

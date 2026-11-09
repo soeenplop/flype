@@ -43,7 +43,15 @@ For Sign in with Apple, set `one.binda.flype.app` as the Primary App ID. A Servi
 Cleanup runs only on the OpenAI model `gpt-6-luna`. Choosing Cleaned asks for consent, which is stored per device, needs a signed-in account and is off by default. The mode itself syncs, so a new device never starts sending text without its own consent.
 
 1. The app calls the Edge Function `cloud-cleanup` with the user's token. The OpenAI key is only a server-side function secret, `OPENAI_API_KEY`.
-2. The function takes quota through `flype_take_cleanup_quota`, which also verifies the token. Per account: 10 requests a minute, 200 a day, 50,000 characters a day. For all users together: 20,000 requests a day. The values are in migration `202611040001_cloud_cleanup.sql`.
+2. The function takes quota through `flype_take_cleanup_quota`, which also verifies the token. Every account: 10 requests a minute. Free: 100 requests and 20,000 characters a week (weeks start Monday, UTC), at most 200 requests and 50,000 characters a day. Pro: no weekly allowance, 500 requests and 150,000 characters a day as fair use. The text around the cursor counts toward the characters. For all users together: 20,000 requests a day. A used-up free week answers 429 with scope `week`, and the apps say so. The values are in migration `202611090001_cleanup_plans.sql`.
+
+   Pro is a row in `flype_entitlements` with an expiry date. People can read their own row but not write it; only the service role does. There is no purchase yet, so Pro is granted by hand for now:
+
+   ```sql
+   insert into public.flype_entitlements(user_id, plan, expires_at, source)
+     values ('<user id>', 'pro', now() + interval '1 year', 'manual')
+     on conflict (user_id) do update set expires_at = excluded.expires_at, updated_at = now();
+   ```
 3. With the transcription go the dictionary spellings it contains and, in German and English, dictionary terms the local audio check heard but could not check in the sentence ([dictionary correction](DICTIONARY-CORRECTION.md), step 8). The apps send up to 200 characters before and after the cursor, so a transcription can continue a typed sentence and end without a period when the sentence goes on. On iPhone, the keyboard passes them to the app per transcription, and the app deletes them after reading.
 4. Neither the function nor the database stores or logs text. The function logs only durations and token counts per request, and returns the durations in a `Server-Timing` header.
 5. When a recording starts with cleanup active, the app renews an expiring session and sends a `GET` without token or text to the function. It answers 405 and counts nothing, but the connection and the function are warm when the text follows. A new instance of the function also opens its connections to the database API and to OpenAI once, with HEAD requests that carry no token, key or text; on a cold first request this runs alongside the quota check.

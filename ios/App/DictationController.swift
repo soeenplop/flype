@@ -305,9 +305,8 @@ final class DictationController: NSObject, ObservableObject {
                     guard operationID == operation, phase == .cleaning, !Task.isCancelled else { return }
                     finishResult(
                         wordText, operation: operation,
-                        notice: (error as? SupabaseAPI.Failure) == .limitReached
-                            ? SupabaseAPI.Failure.limitReached.errorDescription
-                            : "Die Bereinigung ist gerade nicht verfügbar. Dein Originaltext ist bereit."
+                        notice: (error as? SupabaseAPI.Failure).flatMap { $0.isLimit ? $0.errorDescription : nil }
+                            ?? "Die Bereinigung ist gerade nicht verfügbar. Dein Originaltext ist bereit."
                     )
                 }
             } catch {

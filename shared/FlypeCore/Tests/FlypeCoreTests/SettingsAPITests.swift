@@ -263,6 +263,23 @@ extension SettingsAPITests {
             }
         }
     }
+    func testCloudCleanupTellsAUsedUpFreeWeekApart() async throws {
+        let cases: [(Data, SupabaseAPI.Failure)] = [
+            (Data(#"{"scope":"week","plan":"free"}"#.utf8), .weeklyLimitReached),
+            (Data(#"{"scope":"day","plan":"pro"}"#.utf8), .limitReached),
+            (Data("not json".utf8), .limitReached),
+        ]
+        for (body, expected) in cases {
+            SyncProtocol.handler = { _ in (429, body) }
+            do {
+                _ = try await api().cleanDictation(token: "unit-test-token", text: "Text", terms: [], language: .de)
+                XCTFail("A limit must fail")
+            } catch let failure as SupabaseAPI.Failure {
+                XCTAssertEqual(failure, expected)
+                XCTAssertTrue(failure.isLimit)
+            }
+        }
+    }
     func testCloudCleanupIsOffUntilSomeoneOptsIn() throws {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: "flype.tests.cloud-cleanup"))
         defaults.removePersistentDomain(forName: "flype.tests.cloud-cleanup")
