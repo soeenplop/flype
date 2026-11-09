@@ -89,9 +89,17 @@ function serverTiming(timings) {
 }
 
 // Never log dictated text, terms or model output, not even when a request fails.
-export function createHandler({ supabaseURL, fetch, createResponse, now = () => performance.now() }) {
+export function createHandler({ supabaseURL, fetch, createResponse, preconnect, now = () => performance.now() }) {
+  // A new instance opens its connections to the database API and to OpenAI once. The calls carry no token,
+  // key or text, and their failures do not matter.
+  let warming = null;
+  const warm = () => (warming ??= Promise.allSettled([preconnect?.()]));
   return async request => {
-    // The apps send a GET when recording starts. It warms the connection and this function, and does nothing else.
+    // The apps send a GET when recording starts. It warms this function and its connections, and does nothing else.
+    if (request.method === 'GET') {
+      await warm();
+      return new Response(null, { status: 405 });
+    }
     if (request.method !== 'POST') return new Response(null, { status: 405 });
     if (!createResponse) return new Response(null, { status: 503 });
     const raw = await request.text();
@@ -101,6 +109,8 @@ export function createHandler({ supabaseURL, fetch, createResponse, now = () => 
 
     // The database checks the caller's token and counts the request before anything reaches OpenAI.
     const timings = {};
+    // Runs alongside the quota check, so a new instance does not open the OpenAI connection afterwards.
+    warm();
     let started = now();
     const quota = await fetch(`${supabaseURL}/rest/v1/rpc/flype_take_cleanup_quota`, {
       method: 'POST',

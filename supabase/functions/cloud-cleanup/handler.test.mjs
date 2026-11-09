@@ -4,7 +4,7 @@ import { createHandler } from './handler.mjs';
 
 const valid = { text: 'Wir bauen ähm zwei Häuser', terms: ['Flype'], language: 'de' };
 function fixture({ quotaStatus = 200, quota = { allowed: true }, reply, failure, configured = true } = {}) {
-  const calls = { quota: [], openAI: [] };
+  const calls = { quota: [], openAI: [], preconnect: 0 };
   const logs = [];
   const originalError = console.error;
   const originalLog = console.log;
@@ -14,6 +14,7 @@ function fixture({ quotaStatus = 200, quota = { allowed: true }, reply, failure,
   const handler = createHandler({
     supabaseURL: 'https://example.invalid',
     now: () => (clock += 40),
+    preconnect: async () => { calls.preconnect += 1; throw new Error('offline'); },
     fetch: async (url, options) => {
       calls.quota.push({ url, options });
       return new Response(JSON.stringify(quota), { status: quotaStatus });
@@ -60,6 +61,24 @@ test('invalid requests, missing configuration and failed auth never reach OpenAI
     assert.equal(f.calls.openAI.length, 0);
     f.restore();
   }
+});
+
+test('a warm-up opens the connections once per instance and sends nothing else', async () => {
+  const f = fixture();
+  assert.equal((await f.invoke(valid, 'GET')).status, 405);
+  assert.equal((await f.invoke(valid, 'GET')).status, 405);
+  assert.equal((await f.invoke()).status, 200);
+  assert.equal(f.calls.preconnect, 1);
+  assert.equal(f.calls.quota.length, 1);
+  assert.equal(f.calls.openAI.length, 1);
+  f.restore();
+});
+
+test('a cold instance opens its connections alongside the first quota check', async () => {
+  const f = fixture();
+  assert.equal((await f.invoke()).status, 200);
+  assert.equal(f.calls.preconnect, 1);
+  f.restore();
 });
 
 test('limits answer without contacting OpenAI', async () => {
