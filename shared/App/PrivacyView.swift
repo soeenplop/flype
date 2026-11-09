@@ -55,7 +55,7 @@ struct PrivacyView: View {
             #if os(iOS)
                 item(
                     "Keine Aufzeichnung beim Tippen",
-                    "Flype speichert deine Eingaben nicht. Nur beim Start einer Transkription liest Flype bis zu 200 Zeichen vor und nach dem Cursor, damit der Text zum Satz passt. Sie werden danach gelöscht und gehen nur bei „Bereinigt“ an einen Server."
+                    "Flype speichert deine Eingaben nicht, mit einer Ausnahme: Korrigierst du ein gewischtes Wort von Hand, kommt das neue Wort in „Deine Wörter“. Dort kannst du es löschen, und mit Konto wird es wie deine anderen Wörter synchronisiert. Beim Start einer Transkription liest Flype bis zu 200 Zeichen vor und nach dem Cursor, damit der Text zum Satz passt. Sie werden danach gelöscht und gehen nur bei „Bereinigt“ an einen Server."
                 )
                 item(
                     "Automatisches Einfügen",

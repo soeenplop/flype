@@ -16,10 +16,14 @@ Why the keyboard is built the way it is. Most of this exists because something f
 On iPhone, sliding one finger across the letters enters a whole word. It runs for each language with a word list in `vendor/HeliBoardDictionaries`, which is all six. iPad stays out because swiping up there selects a key's upper character.
 
 - `KeyboardSwipeGesture` only takes over once one finger has moved 0.8 key widths from a letter. Up to then keys behave as usual, and a second finger, a long press or a menu makes it fail. When it takes over, UIKit cancels the touch on the starting key, so its letter is not typed.
-- The word has no space behind it, so punctuation can attach. The next letter or swipe adds the space, and one press of delete removes the word. The suggestion bar shows the other readings of the path, and tapping one replaces the word.
+- The word has no space behind it, so punctuation can attach. The next letter or swipe adds the space, and one press of delete removes the word but keeps a space before it. The suggestion bar shows the other readings of the path, and tapping one replaces the word.
 - `CombinedWordList` memory-maps the `.combined` file and keeps only positions of words with frequency 30 or more, between about 86,000 and 200,000 words, depending on the language. The file is sorted by frequency, so the scan ends early and the rest of the file is never read. Offensive words, abbreviations with periods and hyphenated words stay out. An apostrophe, as in c'est, does not count as a key.
 - `SwipeDecoder` runs in the `SwipeTypingEngine` actor. It only looks at words whose first and last letters are near the path's ends, requires every letter to be passed in order, then scores the path's shape, how close it passes each key, the word's frequency and whether the list expects it after the previous word.
 - Words with the same path, such as "Halo" and "Hallo", are decided by frequency alone. The list comes from web and news text, so everyday words can lose. That is what the suggestion bar is for.
+
+- Personal words with "for keyboard suggestions" on can be swiped too, which needs full access.
+- A corrected swipe teaches a word straight away. Either the word is deleted and something else typed in its place, or it is extended, as with geht to geht's. The new word goes into the personal dictionary, marked `learnedFromCorrection`, once a space, punctuation, a new swipe, sending or leaving the field ends it. Words typed without a swipe before them are never learned. It also takes full access, no email or URL field, only letters and apostrophes, at most 32 characters, a word the list cannot already produce, and for a replacement a word that fits the original path. Otherwise it was a change of mind, not a correction. The path and the typed text stay in memory until then.
+- A capital that is only there because a sentence starts is removed before saving.
 
 Tests measure accuracy on synthetic strokes. They guard against regressions, and say little about how swiping feels. Tune it on a real iPhone.
 

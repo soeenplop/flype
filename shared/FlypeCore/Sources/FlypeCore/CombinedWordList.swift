@@ -41,18 +41,24 @@ public struct CombinedWordList: Sendable {
 
     /// The words the list expects after `word`, lowercase, with their stored strength. Ignores the case of `word`.
     func nextWords(after word: String) -> [String: Int] {
+        guard let match = entry(for: word) else { return [:] }
+        return data.withUnsafeBytes { Self.readNextWords($0, after: Int(match.offset) + Int(match.length)) }
+    }
+
+    /// Whether a swipe can already produce this word. Ignores the case of `word`.
+    func contains(_ word: String) -> Bool { entry(for: word) != nil }
+
+    private func entry(for word: String) -> Entry? {
         let lower = word.lowercased()
-        guard let first = lower.unicodeScalars.first, let group = groups[first.value] else { return [:] }
+        guard let first = lower.unicodeScalars.first, let group = groups[first.value] else { return nil }
         let capitalized = lower.prefix(1).uppercased() + lower.dropFirst()
         let variants = [Array(lower.utf8), Array(capitalized.utf8)]
         return data.withUnsafeBytes { bytes in
-            let match = group.first { entry in
+            group.first { entry in
                 let start = Int(entry.offset)
                 let slice = bytes[start..<start + Int(entry.length)]
                 return variants.contains { $0.elementsEqual(slice) }
             }
-            guard let match else { return [:] }
-            return Self.readNextWords(bytes, after: Int(match.offset) + Int(match.length))
         }
     }
 

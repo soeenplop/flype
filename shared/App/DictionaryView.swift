@@ -62,6 +62,9 @@ struct DictionaryView: View {
                             HStack {
                                 Text(verbatim: entry.spelling).foregroundStyle(.primary)
                                 Spacer()
+                                if entry.learnedFromCorrection == true {
+                                    Text(L10n.text("Aus Korrektur")).font(.caption).foregroundStyle(.secondary)
+                                }
                                 if !entry.enabled { Text(L10n.text("Aus")).font(.caption).foregroundStyle(.secondary) }
                                 Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
                             }.padding(.horizontal, 16).padding(.vertical, 18).contentShape(Rectangle())

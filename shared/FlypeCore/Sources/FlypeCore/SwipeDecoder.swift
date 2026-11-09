@@ -34,22 +34,51 @@ public enum SwipeDecoder {
         var innerCapital = 1.0
     }
 
+    /// Personal words have no frequency. This puts them level with common words, so a matching path finds them.
+    private static let personalFrequency = 150.0
+
+    private enum Source {
+        case listed(CombinedWordList.Entry)
+        case personal(String)
+    }
+
     private struct Candidate {
-        let entry: CombinedWordList.Entry
+        let source: Source
         let score: Double
     }
 
     public static func candidates(
-        path: [CGPoint], layout: SwipeKeyLayout, list: CombinedWordList,
+        path: [CGPoint], layout: SwipeKeyLayout, list: CombinedWordList, personalWords: [String] = [],
         previousWord: String? = nil, casing: SwipeCasing = .asListed, limit: Int = 3
     ) -> [String] {
         rank(
-            path: path, layout: layout, list: list, previousWord: previousWord, casing: casing, limit: limit,
-            weights: Weights())
+            path: path, layout: layout, list: list, personalWords: personalWords, previousWord: previousWord,
+            casing: casing, limit: limit, weights: Weights())
+    }
+
+    /// Whether someone could have meant this word with this path, whatever its frequency.
+    public static func fits(_ word: String, path: [CGPoint], layout: SwipeKeyLayout) -> Bool {
+        guard path.count >= 2, layout.keyPitch > 0, path.allSatisfy({ $0.x.isFinite && $0.y.isFinite }) else {
+            return false
+        }
+        var map = KeyMap(layout)
+        let (pathX, pathY) = resample(path)
+        let startKeys = map.keys(near: pathX[0], pathY[0], within: endRadius * layout.keyPitch)
+        let endKeys = map.keys(
+            near: pathX[sampleCount - 1], pathY[sampleCount - 1], within: endRadius * layout.keyPitch)
+        var keys = [Int](repeating: 0, count: 64)
+        var costs = [Double](repeating: 0, count: sampleCount)
+        let bytes = Array(word.utf8)
+        return bytes.withUnsafeBytes { raw in
+            guard let length = map.decode(raw, from: 0, to: raw.count, into: &keys), startKeys[keys[0]],
+                endKeys[keys[length - 1]]
+            else { return false }
+            return passCost(keys, length, map, pathX, pathY, radius: passRadius * layout.keyPitch, costs: &costs) != nil
+        }
     }
 
     static func rank(
-        path: [CGPoint], layout: SwipeKeyLayout, list: CombinedWordList,
+        path: [CGPoint], layout: SwipeKeyLayout, list: CombinedWordList, personalWords: [String] = [],
         previousWord: String?, casing: SwipeCasing, limit: Int, weights: Weights
     ) -> [String] {
         guard path.count >= 2, limit > 0, layout.keyPitch > 0, path.allSatisfy({ $0.x.isFinite && $0.y.isFinite })
@@ -67,29 +96,49 @@ public enum SwipeDecoder {
         var ideal = (x: [Double](repeating: 0, count: 64), y: [Double](repeating: 0, count: 64))
         var passCosts = [Double](repeating: 0, count: sampleCount)
 
+        func score(length: Int, frequency: Double, innerCapital: Bool) -> Double? {
+            guard endKeys[word[length - 1]],
+                let pass = passCost(word, length, map, pathX, pathY, radius: passRadius * pitch, costs: &passCosts)
+            else { return nil }
+            for index in 0..<length {
+                ideal.x[index] = map.x[word[index]]
+                ideal.y[index] = map.y[word[index]]
+            }
+            let shape = shapeCost(pathX, pathY, ideal.x, ideal.y, length, pitch: pitch)
+            let capital = innerCapital ? weights.innerCapital : 0
+            return weights.frequency * frequency - weights.shape * shape - weights.pass * pass / (pitch * pitch)
+                - capital
+        }
+        func keep(_ source: Source, score: Double) {
+            if shortlist.count == shortlistSize, let worst = shortlist.last, score <= worst.score { return }
+            let position = shortlist.firstIndex { $0.score < score } ?? shortlist.count
+            shortlist.insert(Candidate(source: source, score: score), at: position)
+            if shortlist.count > shortlistSize { shortlist.removeLast() }
+        }
+
         list.withBytes { bytes in
             for (first, group) in list.groups {
                 guard let firstKey = map.key(forScalarValue: first), startKeys[firstKey] else { continue }
                 for entry in group {
                     let best = weights.frequency * Double(entry.frequency)
                     if shortlist.count == shortlistSize, let worst = shortlist.last, best <= worst.score { break }
-                    guard let length = map.decode(entry, in: bytes, into: &word), endKeys[word[length - 1]],
-                        let pass = passCost(
-                            word, length, map, pathX, pathY, radius: passRadius * pitch, costs: &passCosts)
+                    let start = Int(entry.offset)
+                    guard let length = map.decode(bytes, from: start, to: start + Int(entry.length), into: &word),
+                        let value = score(
+                            length: length, frequency: Double(entry.frequency),
+                            innerCapital: hasInnerCapital(entry, in: bytes))
                     else { continue }
-                    for index in 0..<length {
-                        ideal.x[index] = map.x[word[index]]
-                        ideal.y[index] = map.y[word[index]]
-                    }
-                    let shape = shapeCost(pathX, pathY, ideal.x, ideal.y, length, pitch: pitch)
-                    let capital = hasInnerCapital(entry, in: bytes) ? weights.innerCapital : 0
-                    let score = best - weights.shape * shape - weights.pass * pass / (pitch * pitch) - capital
-                    if shortlist.count == shortlistSize, let worst = shortlist.last, score <= worst.score { continue }
-                    let position = shortlist.firstIndex { $0.score < score } ?? shortlist.count
-                    shortlist.insert(Candidate(entry: entry, score: score), at: position)
-                    if shortlist.count > shortlistSize { shortlist.removeLast() }
+                    keep(.listed(entry), score: value)
                 }
             }
+        }
+        for personal in personalWords {
+            let bytes = Array(personal.utf8)
+            let length = bytes.withUnsafeBytes { map.decode($0, from: 0, to: $0.count, into: &word) }
+            guard let length, startKeys[word[0]],
+                let value = score(length: length, frequency: personalFrequency, innerCapital: false)
+            else { continue }
+            keep(.personal(personal), score: value)
         }
         return finish(
             shortlist, list: list, previousWord: previousWord, casing: casing, limit: limit,
@@ -103,7 +152,11 @@ public enum SwipeDecoder {
         let expected = previousWord.map { list.nextWords(after: $0) } ?? [:]
         let ranked =
             shortlist.map { candidate -> (word: String, score: Double) in
-                let word = list.word(candidate.entry)
+                let word: String
+                switch candidate.source {
+                case .listed(let entry): word = list.word(entry)
+                case .personal(let value): word = value
+                }
                 let bonus = expected[word.lowercased()].map { _ in nextWordWeight } ?? 0
                 return (word, candidate.score + bonus)
             }
@@ -274,10 +327,9 @@ public enum SwipeDecoder {
 
         /// Writes the word's keys with repeats collapsed, since a double letter does not move the finger.
         mutating func decode(
-            _ entry: CombinedWordList.Entry, in bytes: UnsafeRawBufferPointer, into word: inout [Int]
+            _ bytes: UnsafeRawBufferPointer, from start: Int, to end: Int, into word: inout [Int]
         ) -> Int? {
-            var position = Int(entry.offset)
-            let end = position + Int(entry.length)
+            var position = start
             var length = 0
             while position < end {
                 let byte = bytes[position]

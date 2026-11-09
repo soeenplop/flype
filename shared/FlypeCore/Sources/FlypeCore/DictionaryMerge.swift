@@ -35,7 +35,12 @@ public enum DictionaryMerge {
             if let existing = keys[entry.spelling.lowercased()] {
                 var comparison = entry
                 comparison.id = existing.id
+                // How a word got here is no reason to ask. Adding it by hand outranks having learned it.
+                comparison.learnedFromCorrection = existing.learnedFromCorrection
                 guard comparison == existing else { throw Conflict(ids: [entry.id, existing.id]) }
+                if entry.learnedFromCorrection != true, let index = result.firstIndex(where: { $0.id == existing.id }) {
+                    result[index].learnedFromCorrection = entry.learnedFromCorrection
+                }
                 continue
             }
             for key in ([entry.spelling] + entry.aliases).map({ $0.lowercased() }) {
