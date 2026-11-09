@@ -172,12 +172,16 @@ final class MacDictation: ObservableObject {
 
     func finish() {
         guard recording, let file, let engine, let preparation else { return }
+        var contextTiming = DictationTiming()
         let dictionary = self.dictionary
         let options = self.options
         let correction = dictionaryCorrection
         destination = destination?.refreshed()
         let fieldContext = destination?.textBeforeCursor()
         let followingText = destination?.textAfterCursor()
+        // Accessibility calls block until the target app answers, which some apps take long for.
+        contextTiming.mark("fieldContext")
+        let startTiming = contextTiming
         // Only the length, never the text: shows whether the target app exposes what is in front of the cursor.
         let id = operation
         recording = false
@@ -197,11 +201,13 @@ final class MacDictation: ObservableObject {
         }
         work = Task {
             defer { try? FileManager.default.removeItem(at: file) }
-            var timing = DictationTiming()
+            var timing = startTiming
             do {
                 try await preparation.value
                 try Task.checkCancellation()
                 guard operation == id else { return }
+                // Model and dictionary loading that was still running when the shortcut was released.
+                timing.mark("preparation")
                 var text = try await engine.transcribe(file: file).trimmingCharacters(in: .whitespacesAndNewlines)
                 try Task.checkCancellation()
                 guard !text.isEmpty else { throw MacError.noSpeech }

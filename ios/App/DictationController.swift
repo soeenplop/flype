@@ -210,6 +210,8 @@ final class DictationController: NSObject, ObservableObject {
                 try Task.checkCancellation()
                 guard operationID == operation else { return }
                 self.preparation = nil
+                // Model and dictionary loading that was still running when the recording ended.
+                timing?.mark("preparation")
                 armWatchdog(seconds: 30, operation: operation, error: .processingTimedOut)
                 let file = try AVAudioFile(forReading: audioURL)
                 guard file.length > 0 else { throw DictationError.emptyRecording }
