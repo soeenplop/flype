@@ -126,6 +126,9 @@ export function createHandler({ supabaseURL, fetch, createResponse, now = () => 
       response = await createResponse({
         model: MODEL,
         store: false,
+        // Fast mode (formerly Priority) costs twice the standard rate, which is negligible at these sizes.
+        // The answer reports the tier actually used, which the timing log records.
+        service_tier: 'fast',
         // Same key for every request of a language, so the long instructions come from OpenAI's prompt cache.
         // It names the language only and never the person.
         prompt_cache_key: `flype-cleanup-${input.code}`,
@@ -166,6 +169,7 @@ export function createHandler({ supabaseURL, fetch, createResponse, now = () => 
       cachedTokens: usage.input_tokens_details?.cached_tokens ?? null,
       outputTokens: usage.output_tokens ?? null,
       reasoningTokens: usage.output_tokens_details?.reasoning_tokens ?? null,
+      serviceTier: response.service_tier ?? null,
     }));
     if (response.status !== 'completed') {
       console.error('cloud-cleanup: unusable response status', response.status);

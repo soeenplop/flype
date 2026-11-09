@@ -91,6 +91,7 @@ test('a permitted request forwards the token, counts bytes and asks Luna for str
   const params = f.calls.openAI[0];
   assert.equal(params.model, 'gpt-6-luna');
   assert.equal(params.store, false);
+  assert.equal(params.service_tier, 'fast');
   assert.equal(params.text.format.type, 'json_schema');
   assert.equal(params.text.format.strict, true);
   assert.match(params.instructions, /gesprochener Sprache \(Deutsch\)/);
@@ -111,6 +112,7 @@ test('timings reach the response header and the log as numbers only', async () =
   const f = fixture({
     reply: {
       status: 'completed',
+      service_tier: 'priority',
       output_text: '{"text":"Wir bauen zwei Häuser."}',
       usage: {
         input_tokens: 1300, input_tokens_details: { cached_tokens: 1152 },
@@ -123,6 +125,7 @@ test('timings reach the response header and the log as numbers only', async () =
   const line = f.logs.find(entry => entry.startsWith('cloud-cleanup: timing'));
   assert.deepEqual(JSON.parse(line.slice('cloud-cleanup: timing '.length)), {
     quotaMs: 40, openaiMs: 40, inputTokens: 1300, cachedTokens: 1152, outputTokens: 90, reasoningTokens: 60,
+    serviceTier: 'priority',
   });
   assert.ok(f.logs.every(entry => !entry.includes(valid.text) && !entry.includes('Häuser')));
   f.restore();

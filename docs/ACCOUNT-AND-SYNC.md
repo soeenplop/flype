@@ -48,6 +48,7 @@ Cleanup runs only on the OpenAI model `gpt-6-luna`. Choosing Cleaned asks for co
 4. Neither the function nor the database stores or logs text. The function logs only durations and token counts per request, and returns the durations in a `Server-Timing` header.
 5. When a recording starts with cleanup active, the app renews an expiring session and sends a `GET` without token or text to the function. It answers 405 and counts nothing, but the connection and the function are warm when the text follows.
 6. Requests set `prompt_cache_key` to `flype-cleanup-<language>`, so OpenAI can reuse the cached instructions. The key names only the language, never the person.
+7. Requests use OpenAI's Fast mode (`service_tier: "fast"`, formerly Priority) at twice the standard token price, about 6 instead of 3 US cents per thousand cleanups with a prompt cache hit. The log shows the tier OpenAI actually used.
 
 To deploy: apply the migration, run `supabase secrets set OPENAI_API_KEY=…`, then `supabase functions deploy cloud-cleanup`. Also set a spending limit in the OpenAI project. Requests set `store: false`.
 
