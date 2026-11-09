@@ -25,6 +25,7 @@ case "${1:-all}" in
     backend)
         node --test supabase/functions/revoke-apple-token/index.test.mjs
         node --test supabase/functions/cloud-cleanup/handler.test.mjs
+        node --test supabase/eval/cleanup.test.mjs
         ;;
     core)
         xcrun swift test --package-path shared/FlypeCore --disable-sandbox \

@@ -28,6 +28,14 @@ Both apps log the duration of each step after the recording (recognition, dictio
 
 ## Testing with the real model
 
-There is no automated check against the real model. The handler tests in `supabase/functions/cloud-cleanup/handler.test.mjs` cover the request, quota and prompt wiring with a fake OpenAI client. Check prompt changes by hand with a signed-in account after deploying the function.
+The handler tests in `supabase/functions/cloud-cleanup/handler.test.mjs` cover the request, quota and prompt wiring with a fake OpenAI client.
+
+`supabase/eval/cleanup.mjs` checks the real model against made-up example dictations in `supabase/eval/cleanup-cases.json`: punctuation, spelling, fillers, self-corrections, kept answers and negations, numbers, instructions that stay text, preferred spellings and the text around the cursor. It builds each request through the same handler as the function, so it tests the prompt as deployed, and it reports the time per example. Run it before and after changing the prompt, the model or the service tier:
+
+```bash
+OPENAI_API_KEY=… node supabase/eval/cleanup.mjs
+```
+
+`--model`, `--tier` and `--only <id>` try another model, service tier or a single example. A run costs a fraction of a cent. It is not part of `./scripts/check.sh`, which only tests its wiring. An example lists every acceptable answer; a failure shows what the model returned.
 
 Apple's on-device model was removed from cleanup on 2026-11-06: with broader corrections it copied words from examples, lowercased nouns and copied text after the cursor. The dictionary check still uses it, see [DICTIONARY-CORRECTION.md](DICTIONARY-CORRECTION.md).
