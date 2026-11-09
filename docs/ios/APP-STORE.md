@@ -53,7 +53,7 @@ Ongoing: `APPLE_CLIENT_SECRET` is a JWT valid for at most six months and must be
 >
 > Background audio: the microphone stays active between transcriptions only after the user started it. iOS shows the orange indicator, and the session ends on device lock, after five idle minutes or through a button in the app. No audio is stored between transcriptions and no audio leaves the device.
 >
-> Full Access is used to hand transcribed text from the app to the keyboard and to read the personal dictionary. When a transcription starts, the keyboard also passes up to 200 characters before and after the cursor to the app, so the text can fit into a sentence the user is typing. This text is deleted after the transcription. Other keystrokes are not stored or transmitted.
+> Full Access is used to hand transcribed text from the app to the keyboard and to read the personal dictionary. When a transcription starts, the keyboard also passes up to 200 characters before and after the cursor to the app, so the text can fit into a sentence the user is typing. This text is deleted after the transcription. Apart from that, keystrokes are not stored or transmitted, with one exception: the keyboard counts unknown single words on the device, and adds one to the personal dictionary after two identical corrections of a swiped word or three typings. The counts never leave the device, expire after 30 days and can be deleted under Deine Privatsphäre.
 >
 > Optional cleanup: by default, Flype inserts the recognized text verbatim. Cleanup runs in the cloud. To test it, sign in under Dein Konto, then open Einstellungen and choose „Bereinigt“ in the Dein Schreibstil section. A dialog names OpenAI and the data sent and asks for permission first. When on, the transcribed text, up to 200 characters before and after the cursor and matching terms from the personal dictionary go through our Supabase function to OpenAI. Recordings are never sent. If the service is unavailable, the app inserts the recognized text unchanged.
 >
@@ -67,7 +67,7 @@ This is a proposal and must be confirmed before submitting, especially the last 
 | --- | --- | --- | --- |
 | Email address | yes | no | App functionality |
 | User ID | yes | no | App functionality |
-| Other user content (dictionary, settings) | yes | no | App functionality |
+| Other user content (dictionary including learned words, settings) | yes | no | App functionality |
 | Usage data (number of requests and characters for the limit) | yes | no | App functionality |
 | Other user content (transcribed text and field text with cloud cleanup on) | no, OpenAI gets no user ID | no | App functionality |
 
