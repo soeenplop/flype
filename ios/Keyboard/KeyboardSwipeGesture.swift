@@ -100,16 +100,20 @@ final class KeyboardSwipeGesture: UIGestureRecognizer, UIGestureRecognizerDelega
     ) -> Bool { true }
 }
 
-/// The line that follows the finger. It never receives touches.
+/// The glowing line that follows the finger. It never receives touches.
 final class KeyboardSwipeTrail {
     let layer = CAShapeLayer()
+    private static let width: CGFloat = 8
 
     init() {
         layer.fillColor = nil
-        layer.lineWidth = 5
+        layer.lineWidth = Self.width
         layer.lineCap = .round
         layer.lineJoin = .round
         layer.zPosition = 10
+        layer.shadowOffset = .zero
+        layer.shadowRadius = 9
+        layer.shadowOpacity = 0.9
         layer.isHidden = true
     }
 
@@ -117,12 +121,15 @@ final class KeyboardSwipeTrail {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         layer.removeAllAnimations()
-        layer.strokeColor = color.withAlphaComponent(0.55).cgColor
+        layer.strokeColor = color.withAlphaComponent(0.75).cgColor
+        layer.shadowColor = color.cgColor
         layer.opacity = 1
         layer.isHidden = false
         let path = CGMutablePath()
         path.addLines(between: points)
         layer.path = path
+        // An explicit shadow path keeps the glow cheap while the finger moves.
+        layer.shadowPath = path.copy(strokingWithWidth: Self.width, lineCap: .round, lineJoin: .round, miterLimit: 10)
         CATransaction.commit()
     }
 
