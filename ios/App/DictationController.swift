@@ -39,7 +39,8 @@ final class DictationController: NSObject, ObservableObject {
     private var failureStage = "Vorbereitung"
     private var watchdog: Task<Void, Never>?
     private var operationID = UUID()
-    private var startedFromKeyboard = false
+    /// The writing app is elsewhere, so the app shows how to get back to it.
+    @Published private(set) var startedFromKeyboard = false
     private var keyboardRequestID: UUID?
     private var timing: DictationTiming?
 

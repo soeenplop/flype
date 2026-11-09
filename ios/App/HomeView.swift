@@ -17,6 +17,8 @@ struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = 0
     @State private var pendingStartURL: URL?
+    /// Set as soon as a keyboard link arrives, so the app opens straight on the return hint.
+    @State private var awaitingKeyboardStart = false
     @AppStorage("dictationMode") private var mode = "cleaned"
     @AppStorage(CloudCleanup.consentKey) private var cloudConsent = false
     @AppStorage("speechProvider") private var provider = SpeechProvider.parakeet.rawValue
@@ -87,6 +89,9 @@ struct HomeView: View {
             .tabItem { Label(L10n.text("Einstellungen"), systemImage: "slider.horizontal.3") }.tag(4)
         }
         .tabViewStyle(.sidebarAdaptable)
+        .overlay {
+            if showsReturnHint { ReturnHintView(dictation: dictation) }
+        }
         .overlay {
             if speechSetup.requirement == .choice || speechSetup.requirement == .downloadRequired {
                 SpeechSetupView(setup: speechSetup).tint(FlypeDesign.accent)
@@ -185,7 +190,13 @@ struct HomeView: View {
         .onChange(of: speechSetup.requirement) { _, _ in presentOnboardingIfNeeded() }
     }
 
+    private var showsReturnHint: Bool {
+        awaitingKeyboardStart
+            || (dictation.startedFromKeyboard && (dictation.phase == .preparing || dictation.phase == .recording))
+    }
+
     private func handleIncomingURL(_ url: URL) {
+        if KeyboardStartRequest.requestID(from: url) != nil { awaitingKeyboardStart = true }
         recordKeyboardStartStatus("received", validURL: KeyboardStartRequest.requestID(from: url) != nil)
         pendingStartURL = url
         if scenePhase == .active { consumeStartRequest() }
@@ -209,6 +220,7 @@ struct HomeView: View {
         pendingStartURL = nil
         guard let id = KeyboardStartRequest.requestID(from: url) else {
             recordKeyboardStartStatus("invalid-url")
+            awaitingKeyboardStart = false
             return
         }
         Task {
@@ -216,6 +228,7 @@ struct HomeView: View {
             // The setup screen is in front; the microphone stays off until a recognizer exists.
             guard speechSetup.requirement == .ready else {
                 recordKeyboardStartStatus("setup-required")
+                awaitingKeyboardStart = false
                 return
             }
             startDictation(requestID: id)
@@ -223,6 +236,8 @@ struct HomeView: View {
     }
 
     private func startDictation(requestID id: UUID) {
+        // From here on the dictation phase decides whether the hint stays.
+        defer { awaitingKeyboardStart = false }
         do {
             guard let request = try KeyboardStartStore.shared().consumeRequest(id: id) else {
                 recordKeyboardStartStatus("request-unavailable")
@@ -399,5 +414,119 @@ private struct KeyboardPracticeView: View {
             FlypePrivacyNote()
         }.navigationTitle(L10n.text("Ausprobieren"))
             .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Shown while a recording started from the keyboard runs: iOS offers no public way back
+/// to the writing app, so this explains the system gesture for it.
+private struct ReturnHintView: View {
+    @ObservedObject var dictation: DictationController
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        GeometryReader { proxy in
+            // Without a home indicator (Home button), the swipe does not exist; iOS's ◀ link is the way back.
+            let canSwipe = proxy.safeAreaInsets.bottom > 0
+            VStack(alignment: .leading, spacing: 24) {
+                FlypeBrand().frame(minHeight: 44).padding(.bottom, 10)
+                Label {
+                    Text(verbatim: L10n.text("Aufnahme läuft") + " · " + duration).monospacedDigit()
+                } icon: {
+                    Image(systemName: "waveform")
+                }
+                .font(.footnote).foregroundStyle(FlypeDesign.accent)
+                Text(L10n.text("Sprich einfach weiter, auch in deiner App."))
+                    .font(.largeTitle.weight(.semibold).leading(.tight))
+                    .accessibilityAddTraits(.isHeader)
+                Text(
+                    L10n.text("Wechsle zurück und tippe in der Flype-Tastatur auf Stopp. Der Text wird dort eingefügt.")
+                )
+                .font(.body).foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                FlypeCard {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(L10n.text(canSwipe ? "Am unteren Rand nach rechts wischen" : "Oben links auf ◀ tippen"))
+                            .font(.headline)
+                        Text(L10n.text("So kommst du in die App zurück, aus der du gekommen bist."))
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityElement(children: .combine)
+                    Button(L10n.text("Abbrechen"), role: .cancel) { dictation.discardCurrent() }
+                        .font(.subheadline.weight(.medium))
+                }
+                .padding(.bottom, canSwipe ? 120 - proxy.safeAreaInsets.bottom : 0)
+            }
+            .frame(maxWidth: 640, maxHeight: .infinity, alignment: .topLeading)
+            .padding(24)
+            .frame(maxWidth: .infinity)
+            .overlay(alignment: .bottom) {
+                if canSwipe {
+                    SwipeGestureHint(animated: !reduceMotion)
+                        .frame(height: 118)
+                        .offset(y: proxy.safeAreaInsets.bottom)
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+        .background(FlypeDesign.paper.ignoresSafeArea())
+    }
+
+    private var duration: String {
+        String(format: "%d:%02d", dictation.elapsed / 60, dictation.elapsed % 60)
+    }
+}
+
+/// A dot with a fading tail that follows the swipe arc above the home indicator, like the design draft.
+private struct SwipeGestureHint: View {
+    let animated: Bool
+    private static let cycle = 2.0
+    private static let tail = 14
+    private static let lag = 0.035
+    private static let span: CGFloat = 170
+    private static let lift: CGFloat = 68
+
+    var body: some View {
+        TimelineView(.animation(paused: !animated)) { context in
+            Canvas { canvas, size in
+                let accent = FlypeDesign.accent
+                let start = CGPoint(x: size.width / 2 - Self.span / 2, y: size.height - 33)
+                // The arrow points at the gesture.
+                var arrow = Path()
+                arrow.move(to: CGPoint(x: size.width / 2, y: -16))
+                arrow.addLine(to: CGPoint(x: size.width / 2, y: 28))
+                arrow.move(to: CGPoint(x: size.width / 2 - 12, y: 16))
+                arrow.addLine(to: CGPoint(x: size.width / 2, y: 30))
+                arrow.addLine(to: CGPoint(x: size.width / 2 + 12, y: 16))
+                canvas.stroke(
+                    arrow, with: .color(accent), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                let now = animated ? context.date.timeIntervalSinceReferenceDate : Self.cycle * 0.375
+                for index in stride(from: Self.tail, through: 0, by: -1) {
+                    let (point, visibility) = Self.position(at: now - Double(index) * Self.lag, from: start)
+                    let tailShare = Double(index) / Double(Self.tail)
+                    let diameter = 36 - 22 * tailShare
+                    let opacity = index == 0 ? 0.85 : 0.5 * pow(1 - Double(index) / Double(Self.tail + 1), 1.6)
+                    let rect = CGRect(
+                        x: point.x - diameter / 2, y: point.y - diameter / 2, width: diameter, height: diameter)
+                    if index == 0 {
+                        canvas.fill(
+                            Path(ellipseIn: rect.insetBy(dx: -8, dy: -8)),
+                            with: .color(accent.opacity(0.15 * visibility)))
+                    }
+                    canvas.fill(Path(ellipseIn: rect), with: .color(accent.opacity(opacity * visibility)))
+                    if !animated { break }
+                }
+            }
+        }
+    }
+
+    /// Moves along the arc for the first three quarters of a cycle, then fades out at its end.
+    private static func position(at time: TimeInterval, from start: CGPoint) -> (CGPoint, Double) {
+        let progress = (time / cycle).truncatingRemainder(dividingBy: 1)
+        let t = min(1, progress / 0.75)
+        let visibility =
+            progress < 0.094 ? progress / 0.094 : progress > 0.656 ? max(0, 1 - (progress - 0.656) / 0.344) : 1
+        let point = CGPoint(x: start.x + span * t, y: start.y - lift * t * (1 - t))
+        return (point, visibility)
     }
 }
