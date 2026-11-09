@@ -4,6 +4,7 @@ import SwiftUI
 struct PrivacyView: View {
     @State private var notice: String?
     @State private var hasPendingText = false
+    @State private var hasCountedWords = false
     var body: some View {
         FlypePage {
             Image(systemName: "lock.shield").font(.system(size: 36, weight: .light)).foregroundStyle(FlypeDesign.accent)
@@ -55,7 +56,7 @@ struct PrivacyView: View {
             #if os(iOS)
                 item(
                     "Keine Aufzeichnung beim Tippen",
-                    "Flype speichert deine Eingaben nicht, mit einer Ausnahme: Korrigierst du ein gewischtes Wort von Hand, kommt das neue Wort in „Deine Wörter“. Dort kannst du es löschen, und mit Konto wird es wie deine anderen Wörter synchronisiert. Beim Start einer Transkription liest Flype bis zu 200 Zeichen vor und nach dem Cursor, damit der Text zum Satz passt. Sie werden danach gelöscht und gehen nur bei „Bereinigt“ an einen Server."
+                    "Flype speichert deine Eingaben nicht, mit einer Ausnahme: Wörter, die Flype noch nicht kennt, zählt es auf diesem Gerät. Korrigierst du ein gewischtes Wort zweimal gleich oder tippst du ein unbekanntes Wort dreimal, kommt es in „Deine Wörter“. Dort kannst du es löschen, und mit Konto wird es wie deine anderen Wörter synchronisiert. Gezählte Wörter verlassen das Gerät nicht und verfallen nach 30 Tagen. Beim Start einer Transkription liest Flype bis zu 200 Zeichen vor und nach dem Cursor, damit der Text zum Satz passt. Sie werden danach gelöscht und gehen nur bei „Bereinigt“ an einen Server."
                 )
                 item(
                     "Automatisches Einfügen",
@@ -70,6 +71,15 @@ struct PrivacyView: View {
                         } catch { notice = "Der ausstehende Text konnte nicht gelöscht werden." }
                     }.buttonStyle(.bordered)
                 }
+                if hasCountedWords {
+                    Button(L10n.text("Gezählte Wörter löschen"), role: .destructive) {
+                        do {
+                            try WordLearningStore.shared().clear()
+                            hasCountedWords = false
+                            notice = "Die gezählten Wörter wurden gelöscht."
+                        } catch { notice = "Die gezählten Wörter konnten nicht gelöscht werden." }
+                    }.buttonStyle(.bordered)
+                }
                 if let notice { Text(L10n.text(notice)).font(.subheadline) }
                 Text(
                     L10n.text(
@@ -82,7 +92,10 @@ struct PrivacyView: View {
             Link(L10n.text("Hilfe und Kontakt"), destination: FlypeLinks.support())
         }.navigationTitle(L10n.text("Deine Privatsphäre"))
             #if os(iOS)
-                .task { hasPendingText = (try? ResultStore.shared().pending()) != nil }
+                .task {
+                    hasPendingText = (try? ResultStore.shared().pending()) != nil
+                    hasCountedWords = ((try? WordLearningStore.shared().count()) ?? 0) > 0
+                }
             #endif
             #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)

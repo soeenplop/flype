@@ -190,13 +190,21 @@ final class SwipeDecoderTests: XCTestCase {
         return PersonalDictionaryStore(directory: directory)
     }
 
-    private func engine(store: PersonalDictionaryStore, list: String = " word=geht,f=190\n word=Hund,f=100\n") throws
-        -> SwipeTypingEngine
-    {
+    private func engine(
+        store: PersonalDictionaryStore, learning: WordLearningStore? = nil,
+        list: String = " word=geht,f=190\n word=Hund,f=100\n"
+    ) throws -> SwipeTypingEngine {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".combined")
         try Data(list.utf8).write(to: file)
         addTeardownBlock { try? FileManager.default.removeItem(at: file) }
-        return SwipeTypingEngine(locate: { _ in file }, dictionary: { store })
+        let counts = try learning ?? temporaryLearning()
+        return SwipeTypingEngine(locate: { _ in file }, dictionary: { store }, learning: { counts })
+    }
+
+    private func temporaryLearning() throws -> WordLearningStore {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        return WordLearningStore(directory: directory)
     }
 
     private func correction(
@@ -216,26 +224,88 @@ final class SwipeDecoderTests: XCTestCase {
         XCTAssertEqual(found.first, "Soeren")
     }
 
-    func testExtendingASwipedWordIsLearnedTheFirstTimeAndMarked() async throws {
+    func testAnExtendedSwipeIsLearnedOnTheSecondCorrectionAndMarked() async throws {
         let store = try temporaryStore()
         let engine = try engine(store: store)
-        let learned = await engine.learn(correction(of: "geht", path: idealPath("geht"), extending: true, typing: "'s"))
+        let fix = correction(of: "geht", path: idealPath("geht"), extending: true, typing: "'s")
+        var learned = await engine.learn(fix)
+        XCTAssertFalse(learned, "one correction is not enough")
+        XCTAssertEqual(try store.snapshot().entries, [])
+        learned = await engine.learn(fix)
         XCTAssertTrue(learned)
         let entry = try XCTUnwrap(store.snapshot().entries.first)
         XCTAssertEqual(entry.spelling, "geht's")
         XCTAssertEqual(entry.learnedFromCorrection, true)
+        XCTAssertNil(entry.learnedFromTyping)
     }
 
     func testAReplacementMustFitThePathAndBeMissingFromTheList() async throws {
         let store = try temporaryStore()
         let engine = try engine(store: store)
-        var learned = await engine.learn(correction(of: "Hund", path: idealPath("hund"), typing: "Moin"))
-        XCTAssertFalse(learned, "a different word is a change of mind")
-        learned = await engine.learn(correction(of: "Hand", path: idealPath("hund"), typing: "Hund"))
-        XCTAssertFalse(learned, "the list already has it")
+        for _ in 0..<2 {
+            let learned = await engine.learn(correction(of: "Hund", path: idealPath("hund"), typing: "Moin"))
+            XCTAssertFalse(learned, "a different word is a change of mind")
+        }
+        for _ in 0..<2 {
+            let learned = await engine.learn(correction(of: "Hand", path: idealPath("hund"), typing: "Hund"))
+            XCTAssertFalse(learned, "the list already has it")
+        }
+        var learned = await engine.learn(correction(of: "Hand", path: idealPath("hunt"), typing: "Hunt"))
+        XCTAssertFalse(learned)
         learned = await engine.learn(correction(of: "Hand", path: idealPath("hunt"), typing: "Hunt"))
         XCTAssertTrue(learned)
         XCTAssertEqual(try store.snapshot().entries.map(\.spelling), ["Hunt"])
+    }
+
+    func testAWordTypedThreeTimesIsLearnedAndMarked() async throws {
+        let store = try temporaryStore()
+        let engine = try engine(store: store)
+        for attempt in 1...3 {
+            let learned = await engine.noteTyped("gehts", language: .de, startsSentence: false)
+            XCTAssertEqual(learned, attempt == 3, "attempt \(attempt)")
+        }
+        let entry = try XCTUnwrap(store.snapshot().entries.first)
+        XCTAssertEqual(entry.spelling, "gehts")
+        XCTAssertEqual(entry.learnedFromTyping, true)
+        XCTAssertNil(entry.learnedFromCorrection)
+    }
+
+    func testKnownAndPersonalWordsAreNeverCounted() async throws {
+        let store = try temporaryStore()
+        try store.upsert(PersonalDictionaryEntry(spelling: "Flype"))
+        let learning = try temporaryLearning()
+        let engine = try engine(store: store, learning: learning)
+        for _ in 0..<3 {
+            await engine.noteTyped("geht", language: .de, startsSentence: false)
+            await engine.noteTyped("flype", language: .de, startsSentence: false)
+            await engine.noteTyped("a1b2", language: .de, startsSentence: false)
+        }
+        XCTAssertEqual(try learning.count(), 0)
+        XCTAssertEqual(try store.snapshot().entries.map(\.spelling), ["Flype"])
+    }
+
+    func testTypingAndCorrectingAreCountedSeparately() async throws {
+        let store = try temporaryStore()
+        let engine = try engine(store: store)
+        await engine.noteTyped("geht's", language: .de, startsSentence: false)
+        await engine.noteTyped("geht's", language: .de, startsSentence: false)
+        let fix = correction(of: "geht", path: idealPath("geht"), extending: true, typing: "'s")
+        let learned = await engine.learn(fix)
+        XCTAssertFalse(learned, "two typings and one correction reach neither threshold")
+    }
+
+    func testCountsExpireAndStayBounded() throws {
+        let learning = try temporaryLearning()
+        let start = Date(timeIntervalSince1970: 1_000_000)
+        try learning.record("alt", as: .typing, now: start)
+        let later = start.addingTimeInterval(31 * 86_400)
+        XCTAssertEqual(try learning.record("alt", as: .typing, now: later), .init(typings: 1), "the old count expired")
+        for index in 0..<(WordLearning.maximumCandidates + 20) {
+            try learning.record("wort\(index)", as: .typing, now: later.addingTimeInterval(Double(index)))
+        }
+        XCTAssertEqual(try learning.count(now: later), WordLearning.maximumCandidates)
+        try learning.clear()
+        XCTAssertEqual(try learning.count(now: later), 0)
     }
 
     func testOnlyWordLikeTextIsLearned() {
@@ -269,13 +339,20 @@ final class SwipeDecoderTests: XCTestCase {
     }
 
     func testTheSameWordLearnedAndAddedByHandDoesNotConflict() throws {
-        let learned = PersonalDictionaryEntry(spelling: "geht's", learnedFromCorrection: true)
         let manual = PersonalDictionaryEntry(spelling: "geht's")
-        for (local, remote) in [(learned, manual), (manual, learned)] {
-            let merged = try DictionaryMerge.merge(base: [], local: [local], remote: [remote])
-            XCTAssertEqual(merged.count, 1)
-            XCTAssertNil(merged[0].learnedFromCorrection, "by hand outranks learned")
+        for learned in [
+            PersonalDictionaryEntry(spelling: "geht's", learnedFromCorrection: true),
+            PersonalDictionaryEntry(spelling: "geht's", learnedFromTyping: true),
+        ] {
+            for (local, remote) in [(learned, manual), (manual, learned)] {
+                let merged = try DictionaryMerge.merge(base: [], local: [local], remote: [remote])
+                XCTAssertEqual(merged.count, 1)
+                XCTAssertFalse(merged[0].wasLearned, "by hand outranks learned")
+            }
         }
+        let corrected = PersonalDictionaryEntry(spelling: "geht's", learnedFromCorrection: true)
+        let typed = PersonalDictionaryEntry(spelling: "geht's", learnedFromTyping: true)
+        XCTAssertTrue(try DictionaryMerge.merge(base: [], local: [corrected], remote: [typed])[0].wasLearned)
     }
 
     // MARK: The real list

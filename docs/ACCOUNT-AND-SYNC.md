@@ -24,7 +24,7 @@ For Sign in with Apple, set `one.binda.flype.app` as the Primary App ID. A Servi
 
 ## Sync and conflicts
 
-- Entries may carry `learnedFromCorrection`, which the database does not check. It never causes a merge conflict, and a word added by hand outranks it. App versions from before this field drop it when they write.
+- Entries may carry `learnedFromCorrection` or `learnedFromTyping`, which the database does not check. They never cause a merge conflict, and a word added by hand outranks them. App versions from before these fields drop them when they write. The counts behind them stay on the device and are never synced.
 - One JSON dictionary version per `auth.uid()`, at most 1,000 entries and 2 MB. Settings have their own revision and sync independently.
 - Synced: writing style (Cleaned or Verbatim), transcription language, interface language, the Mac's microphone key and the speech recognizer choice. Model downloads, permissions, setup progress and device-specific keyboard options stay local.
 - Older settings without a model choice keep the local choice. Older apps can change other settings without resetting the synced model choice. Choosing Parakeet does not download a model on another device. The download has to finish there first.

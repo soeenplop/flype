@@ -11,10 +11,13 @@ public struct PersonalDictionaryEntry: Codable, Equatable, Sendable, Identifiabl
     public var replaceAliases: Bool
     /// True when Flype learned the word from a corrected swipe. Absent for words someone added themselves.
     public var learnedFromCorrection: Bool?
+    /// True when Flype learned the word because it was typed by hand several times.
+    public var learnedFromTyping: Bool?
+    public var wasLearned: Bool { learnedFromCorrection == true || learnedFromTyping == true }
     public init(
         id: UUID = UUID(), spelling: String, aliases: [String] = [], enabled: Bool = true,
         useForTyping: Bool = true, useForDictation: Bool = true, replaceAliases: Bool = false,
-        learnedFromCorrection: Bool? = nil
+        learnedFromCorrection: Bool? = nil, learnedFromTyping: Bool? = nil
     ) {
         self.id = id
         self.spelling = spelling
@@ -24,6 +27,7 @@ public struct PersonalDictionaryEntry: Codable, Equatable, Sendable, Identifiabl
         self.useForDictation = useForDictation
         self.replaceAliases = replaceAliases
         self.learnedFromCorrection = learnedFromCorrection
+        self.learnedFromTyping = learnedFromTyping
     }
 }
 

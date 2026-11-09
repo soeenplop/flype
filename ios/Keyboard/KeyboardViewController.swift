@@ -73,6 +73,14 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     }
     private var lastSwipe: SwipeInsertion?
     private var correction: SwipeCorrection?
+    /// A word being typed letter by letter, counted once it ends.
+    private struct TypedWord {
+        var text: String
+        let documentID: UUID
+        let language: FlypeLanguage
+        let startsSentence: Bool
+    }
+    private var typedWord: TypedWord?
     private var lastShiftTap: TimeInterval = 0
     private var lastSpaceTap: TimeInterval = 0
     private struct SuggestionSelection {
@@ -155,6 +163,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
 
     @objc private func hostBecameInactive() {
         finishCorrection(verifyingText: false)
+        typedWord = nil
         isVisible = false
         dismissAlternates()
         hideKeyPreview()
@@ -215,6 +224,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         finishCorrection(verifyingText: false)
+        typedWord = nil
         #if DEBUG
             KeyboardTouchDiagnostics.shared.logSummary()
         #endif
@@ -231,10 +241,11 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     override func textDidChange(_ textInput: (any UITextInput)?) {
         super.textDidChange(textInput)
         // Sending a message empties the field without a space that would have ended the word.
-        if correction?.typed.isEmpty == false, textDocumentProxy.documentContextBeforeInput?.isEmpty != false,
+        if textDocumentProxy.documentContextBeforeInput?.isEmpty != false,
             textDocumentProxy.documentContextAfterInput?.isEmpty != false
         {
-            finishCorrection(verifyingText: false)
+            if correction?.typed.isEmpty == false { finishCorrection(verifyingText: false) }
+            finishTypedWord(verifyingText: false)
         }
         // Keyboard-originated results are one-use return handoffs; document IDs can change after app switching.
         synchronizeCapitalization()
@@ -1130,6 +1141,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         let before = textDocumentProxy.documentContextBeforeInput ?? ""
         let inserted = startsNewWord ? " " + text : text
         insertText(inserted)
+        trackTypedWord(text, before: startsNewWord ? before + " " : before)
         if symbols { typedInSymbols = true }
         returnToLettersIfNeeded(after: character, before: before + inserted)
     }
@@ -1153,6 +1165,38 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         let before = textDocumentProxy.documentContextBeforeInput ?? ""
         insertText("\n")
         returnToLettersIfNeeded(after: "\n", before: before + "\n")
+    }
+
+    private func trackTypedWord(_ text: String, before: String) {
+        // A corrected swipe counts as a correction, not as typing.
+        guard correction == nil, text.allSatisfy(SwipeCorrection.isWordCharacter) else { return }
+        if typedWord != nil {
+            typedWord?.text += text
+            return
+        }
+        // Only a word typed from its first letter counts, never a change in the middle of one.
+        let context = WordSuggestionContext(before: before, after: textDocumentProxy.documentContextAfterInput ?? "")
+        guard context.prefix.isEmpty, context.suffix.isEmpty, hasFullAccess, !suggestionsExcluded,
+            let documentID = currentDocumentID
+        else { return }
+        typedWord = TypedWord(
+            text: text, documentID: documentID, language: language,
+            startsSentence: KeyboardTypingRules.shouldUppercase(before: before, mode: capitalizationMode()))
+    }
+
+    /// The text check drops a word if the cursor moved away, which cannot be read once the field has gone.
+    private func finishTypedWord(verifyingText: Bool) {
+        guard let finished = typedWord else { return }
+        typedWord = nil
+        if verifyingText {
+            guard currentDocumentID == finished.documentID,
+                textDocumentProxy.documentContextBeforeInput?.hasSuffix(finished.text) == true
+            else { return }
+        }
+        Task { [swipeEngine] in
+            await swipeEngine.noteTyped(
+                finished.text, language: finished.language, startsSentence: finished.startsSentence)
+        }
     }
 
     private func beginCorrection(of swipe: SwipeInsertion, extendsSwipedWord: Bool) {
@@ -1226,6 +1270,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
 
     private func finishSwipe(_ points: [CGPoint]) {
         finishCorrection(verifyingText: true)
+        finishTypedWord(verifyingText: true)
         guard let documentID = currentDocumentID else { return }
         let before = textDocumentProxy.documentContextBeforeInput ?? ""
         let after = textDocumentProxy.documentContextAfterInput ?? ""
@@ -1460,8 +1505,9 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
 
     private func insertText(_ text: String) {
         // Anything but a letter or apostrophe ends the word being corrected.
-        if text.contains(where: { !SwipeCorrection.isWordCharacter($0) }), correction?.typed.isEmpty == false {
-            finishCorrection(verifyingText: true)
+        if text.contains(where: { !SwipeCorrection.isWordCharacter($0) }) {
+            if correction?.typed.isEmpty == false { finishCorrection(verifyingText: true) }
+            finishTypedWord(verifyingText: true)
         }
         let before = textDocumentProxy.documentContextBeforeInput ?? ""
         textDocumentProxy.insertText(text)
@@ -1480,6 +1526,11 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             beginCorrection(of: swipe, extendsSwipedWord: false)
         } else if correction?.deleteLast() == false {
             correction = nil
+        }
+        if swipe != nil || typedWord?.text.count ?? 0 <= 1 {
+            typedWord = nil
+        } else {
+            typedWord?.text.removeLast()
         }
         lastSwipe = nil
         for _ in 0..<count { textDocumentProxy.deleteBackward() }
@@ -1622,6 +1673,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         for _ in 0..<context.replacementCount { textDocumentProxy.deleteBackward() }
         lastSwipe = nil
         correction = nil
+        typedWord = nil
         let following = context.after.dropFirst(context.suffix.count).first
         let needsSpace = following.map { !$0.isWhitespace && !".,;:!?)]}»”".contains($0) } ?? true
         textDocumentProxy.insertText(selection.word + (needsSpace ? " " : ""))

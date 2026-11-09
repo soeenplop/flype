@@ -64,6 +64,8 @@ struct DictionaryView: View {
                                 Spacer()
                                 if entry.learnedFromCorrection == true {
                                     Text(L10n.text("Aus Korrektur")).font(.caption).foregroundStyle(.secondary)
+                                } else if entry.learnedFromTyping == true {
+                                    Text(L10n.text("Vom Tippen")).font(.caption).foregroundStyle(.secondary)
                                 }
                                 if !entry.enabled { Text(L10n.text("Aus")).font(.caption).foregroundStyle(.secondary) }
                                 Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)

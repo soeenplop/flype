@@ -41,14 +41,9 @@ public struct SwipeCorrection: Sendable {
         character.isLetter || character == "'" || character == "’"
     }
 
-    /// The word to remember, or nil if this does not look like a word. Numbers and symbols can be private data.
+    /// The word to count, or nil if it is no word or no change.
     public var learnableWord: String? {
-        let word = typed.precomposedStringWithCanonicalMapping
-        guard word.count >= 2, word.count <= 32, word.allSatisfy(Self.isWordCharacter), word.first?.isLetter == true,
-            word.lowercased() != swiped.lowercased()
-        else { return nil }
-        let rest = word.dropFirst()
-        if startsSentence, !rest.contains(where: \.isUppercase) { return word.prefix(1).lowercased() + rest }
-        return word
+        guard typed.precomposedStringWithCanonicalMapping.lowercased() != swiped.lowercased() else { return nil }
+        return WordLearning.learnable(typed, startsSentence: startsSentence)
     }
 }
