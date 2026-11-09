@@ -3,6 +3,21 @@ import XCTest
 @testable import FlypeCore
 
 final class KeyboardTypingRulesTests: XCTestCase {
+    func testAnApostropheAlwaysLeavesTheSymbols() {
+        XCTAssertTrue(KeyboardTypingRules.leavesSymbols(after: "'", typedInSymbols: false))
+        XCTAssertTrue(KeyboardTypingRules.leavesSymbols(after: "'", typedInSymbols: true))
+    }
+    func testSpaceAndReturnLeaveTheSymbolsOnlyAfterTyping() {
+        for key in [" ", "\n"] {
+            XCTAssertTrue(KeyboardTypingRules.leavesSymbols(after: key, typedInSymbols: true))
+            XCTAssertFalse(KeyboardTypingRules.leavesSymbols(after: key, typedInSymbols: false))
+        }
+    }
+    func testOtherSymbolsStayInTheSymbols() {
+        for key in Array("1234567890-/:;()€&@\".,?![]{}#%^*+=_\\|~<>$£¥•").map(String.init) {
+            XCTAssertFalse(KeyboardTypingRules.leavesSymbols(after: key, typedInSymbols: true), key)
+        }
+    }
     func testSentenceCapitalizationOnlyAtSentenceBoundaries() {
         for text in ["", "Hallo. ", "Wie geht es? ", "Super! ", "Absatz\n"] {
             XCTAssertTrue(KeyboardTypingRules.shouldUppercase(before: text, mode: .sentences))

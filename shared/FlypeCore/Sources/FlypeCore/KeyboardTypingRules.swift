@@ -14,6 +14,12 @@ public enum KeyboardTypingRules {
             return trimmed.isEmpty || trimmed.last.map { ".!?".contains($0) } == true
         }
     }
+    /// As on the iPhone's own keyboard: an apostrophe always leads back to the letters, because a word continues.
+    /// A space or return only does once something was typed here, so an empty one does not close the view just opened.
+    public static func leavesSymbols(after key: String, typedInSymbols: Bool) -> Bool {
+        if key == "'" { return true }
+        return (key == " " || key == "\n") && typedInSymbols
+    }
     public static func canReplaceDoubleSpace(before: String) -> Bool {
         guard before.last == " ", let previous = before.dropLast().last else { return false }
         return previous.isLetter || previous.isNumber

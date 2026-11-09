@@ -86,6 +86,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private var capsLock = false
     private var symbols = false
     private var secondarySymbols = false
+    private var typedInSymbols = false
     private var heightConstraint: NSLayoutConstraint?
     private var lastError: String?
     private weak var returnButton: UIButton?
@@ -997,7 +998,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         returnButton = enter
         enter.titleLabel?.font = .systemFont(ofSize: 16)
         enter.accessibilityLabel = returnTitle
-        enter.addAction(UIAction { [weak self] _ in self?.insertText("\n") }, for: .touchUpInside)
+        enter.addAction(UIAction { [weak self] _ in self?.returnPressed() }, for: .touchUpInside)
         bottom.addArrangedSubview(mode)
         // Devices without the system's own switcher need this key to leave the keyboard.
         if needsInputModeSwitchKey {
@@ -1126,7 +1127,32 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             beginCorrection(of: swipe, extendsSwipedWord: true)
         }
         if text.allSatisfy(SwipeCorrection.isWordCharacter) { correction?.append(text) }
-        insertText(startsNewWord ? " " + text : text)
+        let before = textDocumentProxy.documentContextBeforeInput ?? ""
+        let inserted = startsNewWord ? " " + text : text
+        insertText(inserted)
+        if symbols { typedInSymbols = true }
+        returnToLettersIfNeeded(after: character, before: before + inserted)
+    }
+
+    /// The text is passed in because the document proxy can lag behind what was just inserted.
+    private func returnToLettersIfNeeded(after key: String, before: String) {
+        guard symbols else { return }
+        // The iPad keeps its own behavior: only the space leads back.
+        let leaves =
+            usesTabletLayout
+            ? key == " " : KeyboardTypingRules.leavesSymbols(after: key, typedInSymbols: typedInSymbols)
+        guard leaves else { return }
+        symbols = false
+        secondarySymbols = false
+        typedInSymbols = false
+        buildKeys()
+        synchronizeCapitalization(before: before)
+    }
+
+    private func returnPressed() {
+        let before = textDocumentProxy.documentContextBeforeInput ?? ""
+        insertText("\n")
+        returnToLettersIfNeeded(after: "\n", before: before + "\n")
     }
 
     private func beginCorrection(of swipe: SwipeInsertion, extendsSwipedWord: Bool) {
@@ -1388,6 +1414,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     @objc private func toggleSymbols() {
         symbols.toggle()
         secondarySymbols = false
+        typedInSymbols = false
         buildKeys()
     }
 
@@ -1398,14 +1425,11 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             textDocumentProxy.deleteBackward()
             insertText(". ")
             lastSpaceTap = 0
+            returnToLettersIfNeeded(after: " ", before: String(before.dropLast()) + ". ")
         } else {
             insertText(" ")
             lastSpaceTap = now
-        }
-        if symbols {
-            symbols = false
-            secondarySymbols = false
-            buildKeys()
+            returnToLettersIfNeeded(after: " ", before: before + " ")
         }
     }
 

@@ -52,4 +52,5 @@ The keyboard uses `one.binda.flype://dictate` and `one.binda.flype://review`, wh
 
 - The language menu is the native long-press menu on the space bar. A short tap types a space, and a double tap keeps the period rule. The menu stays stable between unchanged refreshes and locks during preparation, recording and processing.
 - The microphone sits left of the space bar.
+- On iPhone the symbol view follows Apple's keyboard, checked key by key on iOS 27.2: an apostrophe always leads back to the letters, a space or return does once something was typed in the symbol view, and every other symbol stays. Deleting or switching between the two symbol pages does not reset that. iPad keeps its own behavior, where the space leads back.
 - The iPhone key area is 216 points without and 262 points with suggestions, with 10 points between the four rows. iPad has its own layout.
