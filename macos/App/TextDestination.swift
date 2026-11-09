@@ -60,7 +60,8 @@ struct TextDestination {
     static let insertionEventTag: Int64 = 0x46_4C59_5045
 
     /// Nil means the paste was sent and nothing shows that the target ignored it.
-    func insert(_ text: String) async -> String? {
+    /// `pasted` runs as soon as the paste is sent, before the up to 1.5 seconds of confirming it.
+    func insert(_ text: String, pasted: () -> Void = {}) async -> String? {
         guard matchesCurrentFocus() else {
             return "Das Zieltextfeld hat sich geändert. Dein Text bleibt in Flype zum Kopieren bereit."
         }
@@ -101,6 +102,7 @@ struct TextDestination {
             event.setIntegerValueField(.eventSourceUserData, value: Self.insertionEventTag)
             event.post(tap: .cgSessionEventTap)
         }
+        pasted()
         // Give the target app time to process its normal Paste command before restoring the clipboard.
         for _ in 0..<30 {
             do { try await Task.sleep(for: .milliseconds(50)) } catch { break }

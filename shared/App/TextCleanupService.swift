@@ -22,7 +22,7 @@ struct DictationTiming {
         mark(step)
         let steps = steps.joined(separator: " ")
         let total = total.milliseconds
-        Self.log.info("dictation \(steps, privacy: .public) total=\(total)ms characters=\(characters)")
+        Self.log.notice("dictation \(steps, privacy: .public) total=\(total)ms characters=\(characters)")
     }
 }
 

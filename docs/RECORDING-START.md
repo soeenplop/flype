@@ -14,7 +14,7 @@ Cancelling always means the same thing: nothing is inserted and the recording is
 
 **iOS:** Cancel in the keyboard's recording view is a command of its own. It discards this transcription and keeps the microphone ready, so the next one needs no app switch. It outranks an unprocessed stop, and the keyboard ignores the status and any result of a cancelled ID, because the app can publish a result before it reads the command. Only "Mikrofon ausschalten" in the app ends the standby.
 
-Cancelling ends just before text reaches another app. On Mac the button then disappears, because a sent paste cannot be taken back. A cancelled cloud cleanup only drops the answer: the text may already have reached OpenAI, and the server counts the request first. A running model step finishes before the work really stops, and a new recording waits for that instead of failing.
+Cancelling ends just before text reaches another app. On Mac the button then disappears, because a sent paste cannot be taken back. The indicator closes as soon as the paste is sent. Flype then checks for up to 1.5 seconds in the background whether the text arrived, and shows a notice in the menu bar if it did not. A cancelled cloud cleanup only drops the answer: the text may already have reached OpenAI, and the server counts the request first. A running model step finishes before the work really stops, and a new recording waits for that instead of failing.
 
 ## Hardware
 

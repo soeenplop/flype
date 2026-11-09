@@ -248,7 +248,8 @@ final class MacDictation: ObservableObject {
                 } else if let destination {
                     let separator = DictationFieldContext.separator(before: text, after: fieldContext)
                     let trailing = DictationFieldContext.trailingSeparator(after: text, following: followingText)
-                    let problem = await destination.insert(separator + text + trailing)
+                    // The text is in the field once the paste is sent, so the overlay does not wait for the check.
+                    let problem = await destination.insert(separator + text + trailing) { overlay.hide() }
                     guard operation == id, !Task.isCancelled else { return }
                     if let problem {
                         status = problem
