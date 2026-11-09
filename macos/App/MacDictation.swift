@@ -385,6 +385,31 @@ private final class RecordingOverlay {
     }
 }
 
+/// Seven bars on a soft tile that ripple with the input level.
+private struct LevelBarsMeter: View {
+    let level: Double
+    @State private var shown = 0.0
+    @State private var lastFrame: Date?
+
+    var body: some View {
+        TimelineView(.animation) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            HStack(spacing: 2.5) {
+                ForEach(Array(LevelBars.scales(level: shown, time: time).enumerated()), id: \.offset) { _, scale in
+                    Capsule().fill(FlypeDesign.accent).frame(width: 3, height: 20 * scale)
+                }
+            }
+            .onChange(of: context.date) { _, now in
+                shown = LevelBars.smoothed(
+                    shown, toward: level, elapsed: lastFrame.map { now.timeIntervalSince($0) } ?? 0)
+                lastFrame = now
+            }
+        }
+        .frame(width: 58, height: 38)
+        .background(FlypeDesign.soft, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+    }
+}
+
 private struct RecordingCapsule: View {
     @ObservedObject var state: RecordingOverlayState
     let language: FlypeLanguage
@@ -399,14 +424,7 @@ private struct RecordingCapsule: View {
         HStack(spacing: 15) {
             if state.stage == .recording {
                 // Display only: releasing the key inserts, and the menu bar offers ending for VoiceOver.
-                Image(systemName: "waveform").font(.system(size: 16, weight: .medium))
-                    .frame(width: 38, height: 38)
-                    .background(FlypeDesign.soft, in: Circle())
-                    .overlay(
-                        Circle().stroke(FlypeDesign.accent.opacity(0.75), lineWidth: 2 + CGFloat(state.level) * 5)
-                    )
-                    .foregroundStyle(FlypeDesign.accent)
-                    .accessibilityHidden(true)
+                LevelBarsMeter(level: Double(state.level)).accessibilityHidden(true)
             } else {
                 ProgressView().controlSize(.small).frame(width: 38, height: 38).accessibilityHidden(true)
             }
