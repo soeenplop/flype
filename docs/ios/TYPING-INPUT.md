@@ -7,6 +7,7 @@ Why the keyboard is built the way it is. Most of this exists because something f
 - Keys keep their visible gaps. `KeyboardKeyGrid` also assigns touches in the gaps to a key, first by row, then by the nearest visible target. Each key's touch area reaches halfway to its neighbors.
 - `KeyboardInputView` passes the keyboard's outer edges and the narrow gap below the suggestion bar on to the grid, so edge keys reach the keyboard's edge. The suggestion bar keeps its own area, and the edge below the microphone does not trigger it.
 - The main view needs a background with minimal opacity (0.001). The system does not deliver touches from fully transparent areas to the extension.
+- Switching between letters and symbols runs layout right away. New keys have no frames until the next layout pass, and a touch arriving before it would hit no key and be lost.
 - The hosted microphone link receives touches through its own view hierarchy, so enlarged touch areas of neighboring keys cannot intercept it.
 - A short tap no longer waits for a long-press gesture to end. Once a real long press is recognized, UIKit suppresses the regular character, so choosing an umlaut adds no extra base letter.
 - The key preview appears on touch-down and disappears on lift, with no minimum duration. It hangs on the observing gesture `KeyboardPreviewGesture` rather than key state, because the system can delay touches at the screen edge for views. The gesture recognizes, delays and interrupts nothing.

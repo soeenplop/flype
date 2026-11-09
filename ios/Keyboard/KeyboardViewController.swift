@@ -1145,7 +1145,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         symbols = false
         secondarySymbols = false
         typedInSymbols = false
-        buildKeys()
+        switchKeys()
         synchronizeCapitalization(before: before)
     }
 
@@ -1386,7 +1386,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     @objc private func toggleShift() {
         if symbols {
             secondarySymbols.toggle()
-            buildKeys()
+            switchKeys()
             return
         }
         let now = ProcessInfo.processInfo.systemUptime
@@ -1415,7 +1415,13 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         symbols.toggle()
         secondarySymbols = false
         typedInSymbols = false
+        switchKeys()
+    }
+
+    /// New keys have no frames until the next layout pass, and a touch arriving before it would hit no key at all.
+    private func switchKeys() {
         buildKeys()
+        view.layoutIfNeeded()
     }
 
     private func spacePressed() {
