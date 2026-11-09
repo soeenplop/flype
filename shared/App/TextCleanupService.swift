@@ -1,5 +1,34 @@
 import FlypeCore
 import Foundation
+import os
+
+/// Logs how long each step after the recording took, as durations only and never with text.
+/// Read it in Console.app with the category "timing".
+struct DictationTiming {
+    private static let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "flype", category: "timing")
+    private var last = ContinuousClock.now
+    private var steps: [String] = []
+    private var total = Duration.zero
+
+    mutating func mark(_ step: String) {
+        let now = ContinuousClock.now
+        let duration = last.duration(to: now)
+        steps.append("\(step)=\(duration.milliseconds)ms")
+        total += duration
+        last = now
+    }
+
+    mutating func report(_ step: String, characters: Int) {
+        mark(step)
+        let steps = steps.joined(separator: " ")
+        let total = total.milliseconds
+        Self.log.info("dictation \(steps, privacy: .public) total=\(total)ms characters=\(characters)")
+    }
+}
+
+extension Duration {
+    fileprivate var milliseconds: Int64 { components.seconds * 1_000 + components.attoseconds / 1_000_000_000_000_000 }
+}
 
 /// Cleanup runs only in the cloud, after the person chose "Bereinigt" and agreed to send the text.
 actor TextCleanupService {

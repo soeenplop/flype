@@ -70,7 +70,8 @@ const json = (status, body, headers = {}) => new Response(JSON.stringify(body), 
 function parseBody(raw) {
   let body;
   try { body = JSON.parse(raw); } catch { return null; }
-  const language = Object.hasOwn(LANGUAGES, body?.language ?? '') ? LANGUAGES[body.language] : null;
+  const code = body?.language ?? '';
+  const language = Object.hasOwn(LANGUAGES, code) ? LANGUAGES[code] : null;
   const { text, terms, context = null, following = null } = body ?? {};
   if (!language || typeof text !== 'string' || text.trim().length === 0) return null;
   if (!Array.isArray(terms) || terms.length > MAX_TERMS) return null;
@@ -79,12 +80,18 @@ function parseBody(raw) {
     if (part !== null && (typeof part !== 'string' || part.length > MAX_CONTEXT)) return null;
   }
   const size = new TextEncoder().encode(text + terms.join(', ') + (context ?? '') + (following ?? '')).length;
-  return size <= MAX_BYTES ? { text, terms, language, context, following, size } : null;
+  return size <= MAX_BYTES ? { text, terms, language, code, context, following, size } : null;
+}
+
+// Only durations and token counts, so the time per step can be measured without any text.
+function serverTiming(timings) {
+  return Object.entries(timings).map(([name, ms]) => `${name};dur=${Math.round(ms)}`).join(', ');
 }
 
 // Never log dictated text, terms or model output, not even when a request fails.
-export function createHandler({ supabaseURL, fetch, createResponse }) {
+export function createHandler({ supabaseURL, fetch, createResponse, now = () => performance.now() }) {
   return async request => {
+    // The apps send a GET when recording starts. It warms the connection and this function, and does nothing else.
     if (request.method !== 'POST') return new Response(null, { status: 405 });
     if (!createResponse) return new Response(null, { status: 503 });
     const raw = await request.text();
@@ -93,6 +100,8 @@ export function createHandler({ supabaseURL, fetch, createResponse }) {
     if (!input) return new Response(null, { status: 400 });
 
     // The database checks the caller's token and counts the request before anything reaches OpenAI.
+    const timings = {};
+    let started = now();
     const quota = await fetch(`${supabaseURL}/rest/v1/rpc/flype_take_cleanup_quota`, {
       method: 'POST',
       headers: {
@@ -105,16 +114,21 @@ export function createHandler({ supabaseURL, fetch, createResponse }) {
     if (quota.status === 401 || quota.status === 403) return new Response(null, { status: 401 });
     if (!quota.ok) return new Response(null, { status: 503 });
     const decision = await quota.json();
+    timings.quota = now() - started;
     if (!decision.allowed) {
       if (decision.scope === 'service') return new Response(null, { status: 503 });
       return json(429, { scope: decision.scope }, { 'Retry-After': String(decision.retry_after ?? 60) });
     }
 
     let response;
+    started = now();
     try {
       response = await createResponse({
         model: MODEL,
         store: false,
+        // Same key for every request of a language, so the long instructions come from OpenAI's prompt cache.
+        // It names the language only and never the person.
+        prompt_cache_key: `flype-cleanup-${input.code}`,
         max_output_tokens: 4_000,
         reasoning: { effort: 'low' },
         instructions: instructions(input.language),
@@ -139,10 +153,20 @@ export function createHandler({ supabaseURL, fetch, createResponse }) {
         },
       });
     } catch (error) {
-      console.error('cloud-cleanup: OpenAI request failed', error?.status ?? 'network');
+      console.error('cloud-cleanup: OpenAI request failed', error?.status ?? 'network', `${Math.round(now() - started)}ms`);
       return new Response(null, { status: 503 });
     }
 
+    timings.openai = now() - started;
+    const usage = response.usage ?? {};
+    console.log('cloud-cleanup: timing', JSON.stringify({
+      quotaMs: Math.round(timings.quota),
+      openaiMs: Math.round(timings.openai),
+      inputTokens: usage.input_tokens ?? null,
+      cachedTokens: usage.input_tokens_details?.cached_tokens ?? null,
+      outputTokens: usage.output_tokens ?? null,
+      reasoningTokens: usage.output_tokens_details?.reasoning_tokens ?? null,
+    }));
     if (response.status !== 'completed') {
       console.error('cloud-cleanup: unusable response status', response.status);
       return new Response(null, { status: 502 });
@@ -155,6 +179,6 @@ export function createHandler({ supabaseURL, fetch, createResponse }) {
       return new Response(null, { status: 502 });
     }
     if (typeof cleaned !== 'string' || cleaned.trim().length === 0) return new Response(null, { status: 502 });
-    return json(200, { text: cleaned });
+    return json(200, { text: cleaned }, { 'Server-Timing': serverTiming(timings) });
   };
 }

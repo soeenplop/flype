@@ -41,6 +41,7 @@ final class DictationController: NSObject, ObservableObject {
     private var operationID = UUID()
     private var startedFromKeyboard = false
     private var keyboardRequestID: UUID?
+    private var timing: DictationTiming?
 
     var busy: Bool { phase == .preparing || phase == .recording || phase == .transcribing || phase == .cleaning }
 
@@ -92,6 +93,7 @@ final class DictationController: NSObject, ObservableObject {
                 self.engine = engine
                 // Start capturing before dictionary/model preparation can delay the first words.
                 try beginRecording()
+                AccountController.prepareCleanup(mode: options.mode)
                 let options = self.options
                 let preparation = Task { [self] in
                     try Task.checkCancellation()
@@ -193,6 +195,7 @@ final class DictationController: NSObject, ObservableObject {
         #endif
         ticker?.cancel()
         if !sessionActive { deactivateAudio() }
+        timing = DictationTiming()
         guard let audioURL, let engine else {
             fail(DictationError.recordingFailed)
             return
@@ -214,6 +217,7 @@ final class DictationController: NSObject, ObservableObject {
                 try Task.checkCancellation()
                 guard operationID == operation else { return }
                 guard !text.isEmpty else { throw DictationError.noSpeech }
+                timing?.mark("recognition")
                 rawTranscript = text
                 var wordText = dictionary.applyingAliases(to: text)
                 var dictionaryNotice: String?
@@ -246,6 +250,7 @@ final class DictationController: NSObject, ObservableObject {
                     dictionaryTask = nil
                     wordText = correction.text
                     dictionaryNotice = correction.notice
+                    timing?.mark("dictionary")
                     #if DEBUG
                         print(
                             "FLYPE_DICTIONARY_RESULT changes=\(correction.changes) fallback=\(correction.notice != nil)"
@@ -310,6 +315,9 @@ final class DictationController: NSObject, ObservableObject {
     private func finishResult(_ text: String, operation: UUID, notice: String? = nil) {
         guard operationID == operation else { return }
         watchdog?.cancel()
+        // The last step is the cleanup, or the dictionary check when it ran into its time limit.
+        timing?.report(phase == .cleaning ? "cleanup" : "rest", characters: text.count)
+        timing = nil
         cleanupTask = nil
         dictionaryTask = nil
         transcript = text

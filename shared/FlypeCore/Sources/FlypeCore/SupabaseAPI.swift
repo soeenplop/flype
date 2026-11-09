@@ -162,9 +162,18 @@ public struct SupabaseAPI: Sendable {
             data: JSONEncoder().encode(
                 Request(
                     text: text, terms: terms, language: language.rawValue, context: context, following: following)),
-            // Leaves time for the model on this device when the server does not answer.
+            // The app keeps the original text after this, so waiting longer would only delay it.
             timeout: 10)
         return result.text
+    }
+    /// Opens the connection and wakes the cleanup function while someone is still speaking.
+    /// Sends no token and no text; the function answers 405 without counting anything.
+    public func warmCleanup() async {
+        var request = URLRequest(url: Self.projectURL.appendingPathComponent("functions/v1/cloud-cleanup"))
+        request.httpMethod = "GET"
+        request.timeoutInterval = 5
+        request.setValue(Self.publicKey, forHTTPHeaderField: "apikey")
+        _ = try? await session.data(for: request)
     }
     private struct Empty: Decodable {}
     private func request<T: Decodable>(path: String, token: String? = nil, body: [String: String]) async throws -> T {

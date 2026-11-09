@@ -241,6 +241,15 @@ final class AccountController: NSObject, ObservableObject, ASWebAuthenticationPr
     static func cleanupActive(mode: DictationMode) -> Bool {
         mode == .cleaned && CloudCleanup.isEnabled() && current?.session != nil
     }
+    /// Runs while someone is still speaking: renews an expiring session and opens the connection to the
+    /// cleanup function, so neither waits until after the recording. Sends no text.
+    static func prepareCleanup(mode: DictationMode) {
+        guard cleanupActive(mode: mode) else { return }
+        Task {
+            _ = try? await cloudCleanupToken()
+            await SupabaseAPI().warmCleanup()
+        }
+    }
     /// Returns nil when nothing may be sent: no consent, or nobody signed in.
     static func cloudCleanupToken() async throws -> String? {
         guard CloudCleanup.isEnabled(), let account = current, var session = account.session else { return nil }

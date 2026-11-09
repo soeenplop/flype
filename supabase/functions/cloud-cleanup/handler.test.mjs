@@ -7,9 +7,13 @@ function fixture({ quotaStatus = 200, quota = { allowed: true }, reply, failure,
   const calls = { quota: [], openAI: [] };
   const logs = [];
   const originalError = console.error;
+  const originalLog = console.log;
   console.error = (...values) => logs.push(values.join(' '));
+  console.log = (...values) => logs.push(values.join(' '));
+  let clock = 0;
   const handler = createHandler({
     supabaseURL: 'https://example.invalid',
+    now: () => (clock += 40),
     fetch: async (url, options) => {
       calls.quota.push({ url, options });
       return new Response(JSON.stringify(quota), { status: quotaStatus });
@@ -23,7 +27,7 @@ function fixture({ quotaStatus = 200, quota = { allowed: true }, reply, failure,
   return {
     calls,
     logs,
-    restore: () => { console.error = originalError; },
+    restore: () => { console.error = originalError; console.log = originalLog; },
     invoke: (body = valid, method = 'POST') => handler(new Request('https://example.invalid/cleanup', {
       method,
       headers: { apikey: 'public-test', Authorization: 'Bearer test-user' },
@@ -91,6 +95,36 @@ test('a permitted request forwards the token, counts bytes and asks Luna for str
   assert.equal(params.text.format.strict, true);
   assert.match(params.instructions, /gesprochener Sprache \(Deutsch\)/);
   assert.deepEqual(JSON.parse(params.input), { transcription: valid.text, preferredSpellings: ['Flype'] });
+  f.restore();
+});
+
+test('requests share a prompt cache per language, never per person', async () => {
+  const f = fixture();
+  await f.invoke();
+  await f.invoke({ ...valid, language: 'en' });
+  assert.deepEqual(f.calls.openAI.map(params => params.prompt_cache_key), ['flype-cleanup-de', 'flype-cleanup-en']);
+  assert.ok(f.calls.openAI.every(params => !JSON.stringify(params).includes('test-user')));
+  f.restore();
+});
+
+test('timings reach the response header and the log as numbers only', async () => {
+  const f = fixture({
+    reply: {
+      status: 'completed',
+      output_text: '{"text":"Wir bauen zwei Häuser."}',
+      usage: {
+        input_tokens: 1300, input_tokens_details: { cached_tokens: 1152 },
+        output_tokens: 90, output_tokens_details: { reasoning_tokens: 60 },
+      },
+    },
+  });
+  const response = await f.invoke();
+  assert.equal(response.headers.get('Server-Timing'), 'quota;dur=40, openai;dur=40');
+  const line = f.logs.find(entry => entry.startsWith('cloud-cleanup: timing'));
+  assert.deepEqual(JSON.parse(line.slice('cloud-cleanup: timing '.length)), {
+    quotaMs: 40, openaiMs: 40, inputTokens: 1300, cachedTokens: 1152, outputTokens: 90, reasoningTokens: 60,
+  });
+  assert.ok(f.logs.every(entry => !entry.includes(valid.text) && !entry.includes('Häuser')));
   f.restore();
 });
 

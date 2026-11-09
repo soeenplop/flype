@@ -120,6 +120,7 @@ final class MacDictation: ObservableObject {
             // Capture now, before awaiting model preparation. Release always closes this file immediately.
             try capture.start(url: file)
             recording = true
+            AccountController.prepareCleanup(mode: options.mode)
             // Audio is already flowing while accessibility and dictionary reads run.
             TextDestination.exposeElectronText()
             let target = TextDestination.capture()
@@ -196,6 +197,7 @@ final class MacDictation: ObservableObject {
         }
         work = Task {
             defer { try? FileManager.default.removeItem(at: file) }
+            var timing = DictationTiming()
             do {
                 try await preparation.value
                 try Task.checkCancellation()
@@ -203,9 +205,11 @@ final class MacDictation: ObservableObject {
                 var text = try await engine.transcribe(file: file).trimmingCharacters(in: .whitespacesAndNewlines)
                 try Task.checkCancellation()
                 guard !text.isEmpty else { throw MacError.noSpeech }
+                timing.mark("recognition")
                 original = text
                 text = dictionary.applyingAliases(to: text)
                 text = try await correction.correct(text, file: file, dictionary: dictionary).text
+                timing.mark("dictionary")
                 if AccountController.cleanupActive(mode: options.mode) {
                     overlay.setStage(.cleaning)
                     do {
@@ -222,6 +226,7 @@ final class MacDictation: ObservableObject {
                             ? SupabaseAPI.Failure.limitReached.errorDescription
                             : "Die Bereinigung ist gerade nicht verfügbar. Dein Originaltext ist bereit."
                     }
+                    timing.mark("cleanup")
                 }
                 try Task.checkCancellation()
                 guard operation == id else { return }
@@ -248,6 +253,7 @@ final class MacDictation: ObservableObject {
                     status = insertionProblem
                 }
                 guard operation == id, !Task.isCancelled else { return }
+                timing.report("insert", characters: text.count)
                 busy = false
                 timeout?.cancel()
                 overlay.hide()

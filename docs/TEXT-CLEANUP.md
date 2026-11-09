@@ -22,6 +22,10 @@ Examples:
 
 A repeated subject followed by a different form of "to be" can revoke an unfinished clause, as in "Hallo, das ist Nein, das war ein Test." A local step removes only the unfinished clause and the correction signal, leaving "Hallo, das war ein Test." It supports the chosen language's forms of "to be" and keeps surrounding sentences. It does not cross sentence boundaries or quotation marks, change the subject, or remove negated or complete clauses. Other corrections are up to the model.
 
+## Speed
+
+Both apps log the duration of each step after the recording (recognition, dictionary check, cleanup, on the Mac also inserting) with the log category `timing`, as numbers only. The cleanup function logs its own split into quota check and OpenAI call, with input, cached, output and reasoning tokens. Together they show where the wait comes from before the model, its reasoning effort or the prompt change.
+
 ## Testing with the real model
 
 There is no automated check against the real model. The handler tests in `supabase/functions/cloud-cleanup/handler.test.mjs` cover the request, quota and prompt wiring with a fake OpenAI client. Check prompt changes by hand with a signed-in account after deploying the function.

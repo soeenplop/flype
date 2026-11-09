@@ -239,6 +239,19 @@ extension SettingsAPITests {
         let text = try await api().cleanDictation(token: "unit-test-token", text: "ähm Text", terms: [], language: .de)
         XCTAssertEqual(text, "Sauberer Text.")
     }
+    func testWarmingTheCleanupSendsNeitherTokenNorText() async throws {
+        let requested = expectation(description: "warm-up request")
+        SyncProtocol.handler = { request in
+            XCTAssertEqual(request.url?.path, "/functions/v1/cloud-cleanup")
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
+            XCTAssertNil(request.httpBody)
+            requested.fulfill()
+            return (405, Data())
+        }
+        await api().warmCleanup()
+        await fulfillment(of: [requested], timeout: 1)
+    }
     func testCloudCleanupReportsLimitsAndExpiredSessions() async throws {
         for (status, expected) in [(429, SupabaseAPI.Failure.limitReached), (401, .unauthorized), (503, .unavailable)] {
             SyncProtocol.handler = { _ in (status, Data()) }
