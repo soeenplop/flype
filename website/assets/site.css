@@ -99,6 +99,13 @@ a { color: inherit; }
 .tile-lang { grid-column: span 7; }
 .tile-sync { grid-column: span 7; background: var(--lavender); color: #1e1233; }
 .tile-sync > p { color: #3a2a56; }
+.tile-swipe { grid-column: span 12; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 28px; align-items: center; }
+.swipe-keys { display: block; width: 100%; height: auto; max-width: 600px; justify-self: end; }
+.swipe-key rect { fill: #24212a; }
+.swipe-key text { fill: var(--muted); font-family: var(--font); font-size: 19px; text-anchor: middle; }
+.swipe-trail, .swipe-trail-glow { fill: none; stroke: var(--lavender); stroke-linecap: round; stroke-linejoin: round; }
+.swipe-trail { stroke-width: 8; }
+.swipe-trail-glow { stroke-width: 16; opacity: 0.85; }
 
 .wave { display: flex; align-items: center; gap: 12px; height: 118px; margin-top: auto; padding-top: 22px; }
 .wave i { display: block; width: 18px; border-radius: 9px; background: var(--lavender); }
@@ -199,6 +206,8 @@ details p { padding: 0 34px 20px 0; color: var(--muted); }
   .nav-soon { display: none; }
   .iphone, .mac, .why, .data { grid-template-columns: minmax(0, 1fr); }
   .tile-style, .tile-local, .tile-lang, .tile-sync { grid-column: span 12; }
+  .tile-swipe { grid-template-columns: minmax(0, 1fr); }
+  .swipe-keys { justify-self: center; }
   .tile-words { grid-column: span 12; grid-row: auto; min-height: 520px; }
   .wave { height: 90px; }
   .minor { grid-template-columns: repeat(2, 1fr); }
