@@ -8,6 +8,17 @@ public struct DictionaryCandidate: Equatable, Sendable {
     public let spelling: String
 }
 
+/// A dictionary term that a second recognition of the same audio supports, but that no local model
+/// could check in the sentence. Cleanup may use it when the term fits; it never replaces text on its own.
+public struct DictionarySoundAlike: Codable, Equatable, Sendable {
+    public let heard: String
+    public let spelling: String
+    public init(heard: String, spelling: String) {
+        self.heard = heard
+        self.spelling = spelling
+    }
+}
+
 public enum DictionaryCorrection {
     private struct Word {
         let text: String
@@ -67,6 +78,18 @@ public enum DictionaryCorrection {
             }
         }
         return found
+    }
+
+    /// Candidates the audio supports by sound but that were neither applied nor rejected in the sentence.
+    /// Without audio support nothing qualifies, so similarity alone never reaches the cleanup.
+    public static func soundAlikes(
+        _ candidates: [DictionaryCandidate], audioSupported: Set<Int>, decided: Set<Int>, maximum: Int = 12
+    ) -> [DictionarySoundAlike] {
+        var seen = Set<String>()
+        return candidates.filter { audioSupported.contains($0.id) && !decided.contains($0.id) }
+            .map { DictionarySoundAlike(heard: $0.heard, spelling: $0.spelling) }
+            .filter { seen.insert($0.heard + "\u{0}" + $0.spelling).inserted }
+            .prefix(maximum).map { $0 }
     }
 
     /// Evidence must be explainable entirely by our proposed edits. A different

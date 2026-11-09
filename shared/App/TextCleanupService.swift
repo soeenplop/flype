@@ -34,7 +34,7 @@ extension Duration {
 actor TextCleanupService {
     func clean(
         _ text: String, dictionary: DictionarySnapshot, language: FlypeLanguage = .de, cloudToken: String,
-        fieldContext: String? = nil, followingText: String? = nil
+        fieldContext: String? = nil, followingText: String? = nil, soundAlikes: [DictionarySoundAlike] = []
     ) async throws -> String {
         // The server rejects larger requests, so they are not sent at all. Never truncate input.
         let terms = dictionary.relevantTerms(for: text)
@@ -42,13 +42,14 @@ actor TextCleanupService {
         let following = followingText.map(DictationFieldContext.head).flatMap { $0.isEmpty ? nil : $0 }
         guard
             text.utf8.count + terms.joined(separator: ", ").utf8.count + (context?.utf8.count ?? 0)
-                + (following?.utf8.count ?? 0) <= 5_000
+                + (following?.utf8.count ?? 0)
+                + soundAlikes.reduce(0) { $0 + $1.heard.utf8.count + $1.spelling.utf8.count } <= 5_000
         else {
             throw CleanupError.tooLong
         }
         let result = try await SupabaseAPI().cleanDictation(
             token: cloudToken, text: text, terms: terms, language: language, context: context,
-            following: following)
+            following: following, soundAlikes: soundAlikes)
         try Task.checkCancellation()
         let cleaned = result.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else { throw CleanupError.empty }

@@ -20,6 +20,8 @@ struct DictionaryCorrectionResult: Sendable {
     let text: String
     let changes: Int
     let notice: String?
+    /// Supported by the audio but not checked in the sentence; cleanup decides whether they fit.
+    var soundAlikes: [DictionarySoundAlike] = []
 }
 
 actor DictionaryCorrectionService {
@@ -70,17 +72,26 @@ actor DictionaryCorrectionService {
         let contextAvailable = model.isAvailable && model.supportsLocale(Locale(identifier: language.localeIdentifier))
         // The verifier can hear the same name under another spelling. Such
         // approximate evidence needs the separate contextual decision as well.
-        var approved =
-            contextAvailable
-            ? DictionaryCorrection.audioConfirmed(
-                potential, original: text, evidence: evidence, allowPhonetic: language == .de || language == .en)
+        let audioSupported =
+            language == .de || language == .en
+            ? DictionaryCorrection.audioConfirmed(potential, original: text, evidence: evidence, allowPhonetic: true)
             : exactIDs
+        var approved = contextAvailable ? audioSupported : exactIDs
+        // Without a local context check, the cleanup gets the audio-supported names as hints.
+        var soundAlikes =
+            contextAvailable
+            ? []
+            : DictionaryCorrection.soundAlikes(potential, audioSupported: audioSupported, decided: exactIDs)
         #if DEBUG
             print(
                 "FLYPE_DICTIONARY_AUDIO exact=\(exactIDs.count) supported=\(approved.count) context=\(contextAvailable)"
             )
         #endif
-        guard !approved.isEmpty else { return .init(text: base, changes: caseIDs.count, notice: nil) }
+        guard !approved.isEmpty else {
+            return .init(
+                text: base, changes: caseIDs.count, notice: nil,
+                soundAlikes: soundAlikes.filter { base.contains($0.heard) })
+        }
         let confirmed = potential.filter { approved.contains($0.id) }
         if contextAvailable {
             let session = LanguageModelSession(
@@ -116,6 +127,8 @@ actor DictionaryCorrectionService {
                     print("FLYPE_DICTIONARY_CONTEXT accepted=\(approved.count)")
                 #endif
             } catch is CancellationError { throw CancellationError() } catch {
+                // No decision was made, so the cleanup may still check them in the sentence.
+                soundAlikes = DictionaryCorrection.soundAlikes(potential, audioSupported: approved, decided: [])
                 approved = []
                 #if DEBUG
                     let error = error as NSError
@@ -128,7 +141,9 @@ actor DictionaryCorrectionService {
         try Task.checkCancellation()
         approved.formUnion(caseIDs)
         let result = DictionaryCorrection.applying(candidates, approved: approved, to: text)
-        return .init(text: result, changes: result == text ? 0 : approved.count, notice: nil)
+        return .init(
+            text: result, changes: result == text ? 0 : approved.count, notice: nil,
+            soundAlikes: soundAlikes.filter { result.contains($0.heard) })
     }
 
     private func excludeOrdinaryWords(_ candidates: [DictionaryCandidate]) async -> [DictionaryCandidate] {

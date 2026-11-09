@@ -223,6 +223,7 @@ final class DictationController: NSObject, ObservableObject {
                 rawTranscript = text
                 var wordText = dictionary.applyingAliases(to: text)
                 var dictionaryNotice: String?
+                var soundAlikes: [DictionarySoundAlike] = []
                 self.engine = nil
                 watchdog?.cancel()
                 if dictionary.entries.contains(where: { $0.enabled && $0.useForDictation }) {
@@ -252,6 +253,7 @@ final class DictationController: NSObject, ObservableObject {
                     dictionaryTask = nil
                     wordText = correction.text
                     dictionaryNotice = correction.notice
+                    soundAlikes = correction.soundAlikes
                     timing?.mark("dictionary")
                     #if DEBUG
                         print(
@@ -273,13 +275,14 @@ final class DictationController: NSObject, ObservableObject {
                 let snapshot = dictionary
                 let service = cleanup
                 let language = options.language
+                let hints = soundAlikes
                 let task = Task {
                     guard let token = try await AccountController.cloudCleanupToken() else {
                         throw SupabaseAPI.Failure.unauthorized
                     }
                     return try await service.clean(
                         wordText, dictionary: snapshot, language: language, cloudToken: token,
-                        fieldContext: fieldContext?.text, followingText: fieldContext?.following)
+                        fieldContext: fieldContext?.text, followingText: fieldContext?.following, soundAlikes: hints)
                 }
                 cleanupTask = task
                 watchdog = Task { [weak self] in

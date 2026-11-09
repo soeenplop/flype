@@ -45,6 +45,7 @@ export async function evaluate({ cases, apiKey, fetch = globalThis.fetch, model,
         language: example.language,
         context: example.context ?? null,
         following: example.following ?? null,
+        ...(example.soundAlikes ? { soundAlikes: example.soundAlikes } : {}),
       }),
     }));
     const ms = Math.round(now() - started);

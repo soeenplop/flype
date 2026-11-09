@@ -128,3 +128,17 @@ final class DictionaryCorrectionTests: XCTestCase {
             12)
     }
 }
+
+extension DictionaryCorrectionTests {
+    func testOnlyUndecidedCandidatesWithAudioSupportBecomeSoundAlikes() {
+        let candidates = [
+            DictionaryCandidate(id: 0, range: NSRange(location: 0, length: 5), heard: "Fleip", spelling: "Flype"),
+            DictionaryCandidate(id: 1, range: NSRange(location: 6, length: 5), heard: "Muster", spelling: "Mustr"),
+            DictionaryCandidate(id: 2, range: NSRange(location: 12, length: 5), heard: "Klara", spelling: "Clara"),
+            DictionaryCandidate(id: 3, range: NSRange(location: 20, length: 5), heard: "Fleip", spelling: "Flype"),
+        ]
+        let hints = DictionaryCorrection.soundAlikes(candidates, audioSupported: [0, 2, 3], decided: [2])
+        XCTAssertEqual(hints, [DictionarySoundAlike(heard: "Fleip", spelling: "Flype")])
+        XCTAssertTrue(DictionaryCorrection.soundAlikes(candidates, audioSupported: [], decided: []).isEmpty)
+    }
+}

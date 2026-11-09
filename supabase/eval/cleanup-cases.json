@@ -31,6 +31,14 @@
   },
   { "id": "de-preferred-spelling", "language": "de", "text": "Ich diktiere das mit flype", "terms": ["Flype"], "expected": ["Ich diktiere das mit Flype."] },
   { "id": "de-preferred-spelling-unused", "language": "de", "text": "Das war ein guter Tag", "terms": ["Flype"], "expected": ["Das war ein guter Tag."] },
+  {
+    "id": "de-sound-alike-fits", "language": "de", "text": "Ich habe das mit Fleip diktiert", "terms": ["Flype"],
+    "soundAlikes": [{ "heard": "Fleip", "spelling": "Flype" }], "expected": ["Ich habe das mit Flype diktiert."]
+  },
+  {
+    "id": "de-sound-alike-does-not-fit", "language": "de", "text": "Die Fliege sitzt am Fenster", "terms": ["Flype"],
+    "soundAlikes": [{ "heard": "Fliege", "spelling": "Flype" }], "expected": ["Die Fliege sitzt am Fenster."]
+  },
   { "id": "de-continue-lowercase", "language": "de", "context": "Ich wollte dir noch", "text": "Sagen dass es klappt.", "expected": ["sagen, dass es klappt."] },
   { "id": "de-continue-noun", "language": "de", "context": "Morgen kaufen wir ein", "text": "Neues Auto.", "expected": ["neues Auto."] },
   { "id": "de-new-sentence", "language": "de", "context": "Danke für alles.", "text": "bis bald", "expected": ["Bis bald."] },

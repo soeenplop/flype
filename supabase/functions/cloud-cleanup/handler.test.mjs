@@ -51,6 +51,10 @@ test('invalid requests, missing configuration and failed auth never reach OpenAI
     [{}, { ...valid, context: 'x'.repeat(401) }, 'POST', 400],
     [{}, { ...valid, following: 7 }, 'POST', 400],
     [{}, { ...valid, following: 'x'.repeat(401) }, 'POST', 400],
+    [{}, { ...valid, soundAlikes: 'Flype' }, 'POST', 400],
+    [{}, { ...valid, soundAlikes: [{ heard: 'bauen' }] }, 'POST', 400],
+    [{}, { ...valid, soundAlikes: [{ heard: 'bauen', spelling: 'x'.repeat(81) }] }, 'POST', 400],
+    [{}, { ...valid, soundAlikes: Array(13).fill({ heard: 'bauen', spelling: 'Bauen' }) }, 'POST', 400],
     [{}, oversized, 'POST', 400],
     [{ quotaStatus: 401 }, valid, 'POST', 401],
     [{ quotaStatus: 403 }, valid, 'POST', 401],
@@ -169,6 +173,23 @@ test('the text after the cursor reaches OpenAI as data and counts toward the quo
   assert.equal(input.precedingText, 'Ich komme');
   assert.equal(input.followingText, 'zum Essen.');
   assert.match(f.calls.openAI[0].instructions, /‹Ich komme› \+ ‹Morgen\.› \+ ‹zum Essen\.› → ‹morgen›/);
+  f.restore();
+});
+
+test('sound-alike hints reach OpenAI only for words in the transcription and count toward the quota', async () => {
+  const f = fixture();
+  const soundAlikes = [
+    { heard: 'Häuser', spelling: 'Heuser', extra: 'dropped' },
+    { heard: 'Garten', spelling: 'Gartner' },
+  ];
+  assert.equal((await f.invoke({ ...valid, soundAlikes })).status, 200);
+  assert.deepEqual(JSON.parse(f.calls.openAI[0].input).soundAlikes, [{ heard: 'Häuser', spelling: 'Heuser' }]);
+  const size = new TextEncoder().encode(valid.text + 'Flype' + 'HäuserHeuser').length;
+  assert.deepEqual(JSON.parse(f.calls.quota[0].options.body), { p_characters: size });
+  assert.match(f.calls.openAI[0].instructions, /„soundAlikes“/);
+
+  await f.invoke();
+  assert.equal(JSON.parse(f.calls.openAI[1].input).soundAlikes, undefined);
   f.restore();
 });
 

@@ -147,7 +147,7 @@ public struct SupabaseAPI: Sendable {
     }
     public func cleanDictation(
         token: String, text: String, terms: [String], language: FlypeLanguage, context: String? = nil,
-        following: String? = nil
+        following: String? = nil, soundAlikes: [DictionarySoundAlike] = []
     ) async throws -> String {
         struct Request: Encodable {
             let text: String
@@ -155,13 +155,15 @@ public struct SupabaseAPI: Sendable {
             let language: String
             let context: String?
             let following: String?
+            let soundAlikes: [DictionarySoundAlike]?
         }
         struct Result: Decodable { let text: String }
         let result: Result = try await send(
             path: "functions/v1/cloud-cleanup", token: token,
             data: JSONEncoder().encode(
                 Request(
-                    text: text, terms: terms, language: language.rawValue, context: context, following: following)),
+                    text: text, terms: terms, language: language.rawValue, context: context, following: following,
+                    soundAlikes: soundAlikes.isEmpty ? nil : soundAlikes)),
             // The app keeps the original text after this, so waiting longer would only delay it.
             timeout: 10)
         return result.text

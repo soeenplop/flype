@@ -224,7 +224,8 @@ final class MacDictation: ObservableObject {
                 timing.mark("recognition")
                 original = text
                 text = dictionary.applyingAliases(to: text)
-                text = try await correction.correct(text, file: file, dictionary: dictionary).text
+                let corrected = try await correction.correct(text, file: file, dictionary: dictionary)
+                text = corrected.text
                 timing.mark("dictionary")
                 if AccountController.cleanupActive(mode: options.mode) {
                     overlay.setStage(.cleaning)
@@ -234,7 +235,8 @@ final class MacDictation: ObservableObject {
                         }
                         text = try await TextCleanupService().clean(
                             text, dictionary: dictionary, language: options.language, cloudToken: token,
-                            fieldContext: fieldContext, followingText: followingText)
+                            fieldContext: fieldContext, followingText: followingText, soundAlikes: corrected.soundAlikes
+                        )
                     } catch is CancellationError { throw CancellationError() } catch {
                         guard operation == id else { return }
                         cleanupNotice =
