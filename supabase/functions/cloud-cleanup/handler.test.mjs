@@ -168,7 +168,7 @@ test('the text before the cursor reaches OpenAI as data and counts toward the qu
   const size = new TextEncoder().encode(valid.text + 'Flype' + 'Ich gehe heute').length;
   assert.deepEqual(JSON.parse(f.calls.quota[0].options.body), { p_characters: size });
   assert.equal(JSON.parse(f.calls.openAI[0].input).precedingText, 'Ich gehe heute');
-  assert.match(f.calls.openAI[0].instructions, /‹Das› \+ ‹Klappt ja schon mal\.› → ‹klappt ja schon mal\.›/);
+  assert.match(f.calls.openAI[0].instructions, /‹Ich kaufe ein› \+ ‹Neues Haus\.› → ‹neues Haus\.›/);
   f.restore();
 });
 

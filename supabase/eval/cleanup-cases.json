@@ -55,5 +55,14 @@
   { "id": "en-no-as-answer", "language": "en", "text": "No that's not what I meant", "expected": ["No, that's not what I meant."] },
   { "id": "fr-elision", "language": "fr", "text": "je pense que on peut venir demain", "expected": ["Je pense qu'on peut venir demain."] },
   { "id": "es-question", "language": "es", "text": "hola como estas", "expected": ["Hola, ¿cómo estás?", "¡Hola! ¿Cómo estás?", "Hola. ¿Cómo estás?"] },
-  { "id": "it-punctuation", "language": "it", "text": "ci vediamo domani in ufficio", "expected": ["Ci vediamo domani in ufficio."] }
+  { "id": "it-punctuation", "language": "it", "text": "ci vediamo domani in ufficio", "expected": ["Ci vediamo domani in ufficio."] },
+  { "id": "de-new-sentence-after-space", "language": "de", "context": "Danke für alles. ", "text": "wir sehen uns morgen", "expected": ["Wir sehen uns morgen."] },
+  { "id": "de-new-line-after-stop", "language": "de", "context": "Die Lieferung kommt später.\n", "text": "neuer Termin ist am Montag", "expected": ["Neuer Termin ist am Montag."] },
+  { "id": "de-after-emoji", "language": "de", "context": "Geschafft 🙌 ", "text": "jetzt machen wir Pause", "expected": ["Jetzt machen wir Pause."] },
+  { "id": "de-letter-salutation", "language": "de", "context": "Hallo Tom,\n\n", "text": "Vielen Dank für die Einladung.", "expected": ["vielen Dank für die Einladung."] },
+  { "id": "de-sentences-inside", "language": "de", "text": "das passt. wir sehen uns dann morgen", "expected": ["Das passt. Wir sehen uns dann morgen."] },
+  { "id": "en-new-sentence-after-space", "language": "en", "context": "Thanks a lot. ", "text": "see you tomorrow", "expected": ["See you tomorrow."] },
+  { "id": "de-abbreviation-continues", "language": "de", "context": "Dafür eignen sich z. B. ", "text": "Kleine Räume", "expected": ["kleine Räume."] },
+  { "id": "de-abbreviation-ca", "language": "de", "context": "Die Fahrt dauert ca. ", "text": "Zwei Stunden", "expected": ["zwei Stunden."] },
+  { "id": "de-abbreviation-ends", "language": "de", "context": "Wir brauchen Stifte, Papier usw. ", "text": "morgen kaufe ich alles", "expected": ["Morgen kaufe ich alles."] }
 ]
