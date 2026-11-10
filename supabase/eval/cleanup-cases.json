@@ -111,5 +111,9 @@
   { "id": "en-period-as-word", "language": "en", "text": "that was a difficult period for us", "expected": ["That was a difficult period for us."] },
   { "id": "fr-decimal-comma", "language": "fr", "text": "ça fait douze virgule cinq pour cent", "expected": ["Ça fait douze virgule cinq pour cent."] },
   { "id": "de-quatsch-stays", "language": "de", "text": "Quatsch das glaube ich dir nicht", "expected": ["Quatsch, das glaube ich dir nicht.", "Quatsch. Das glaube ich dir nicht.", "Quatsch! Das glaube ich dir nicht."] },
-  { "id": "de-sequence-stays", "language": "de", "text": "Erst fahren wir nach Köln dann nach Bonn", "expected": ["Erst fahren wir nach Köln, dann nach Bonn."] }
+  { "id": "de-sequence-stays", "language": "de", "text": "Erst fahren wir nach Köln dann nach Bonn", "expected": ["Erst fahren wir nach Köln, dann nach Bonn."] },
+  { "id": "de-question-repeated", "language": "de", "context": "Klappt das denn jetzt? ", "text": "Klappt das denn jetzt immer noch?", "expected": ["Klappt das denn jetzt immer noch?"] },
+  { "id": "de-question-repeated-no-space", "language": "de", "context": "Ist das gut?", "text": "Ist das wirklich gut?", "expected": ["Ist das wirklich gut?"] },
+  { "id": "de-question-lowercase-context", "language": "de", "context": "Klappt das denn jetzt? klappt das denn jetzt immer noch? ", "text": "und jetzt", "expected": ["Und jetzt?", "Und jetzt."] },
+  { "id": "de-exclamation-new-sentence", "language": "de", "context": "Toll! ", "text": "das freut mich", "expected": ["Das freut mich."] }
 ]
