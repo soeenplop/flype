@@ -8,7 +8,9 @@ The cleanup corrects punctuation, capitalization, spelling, compounds, grammar a
 
 The recognized text stays available as the original. It must replace only the smallest revoked passage and keep everything around it, including other sentences. A real negative answer must stay negative, and ambiguous corrections stay literal. This is a model instruction, not a guarantee of equal meaning.
 
-The instructions apply generally to quantities, attributes, dates and clauses, without greeting-specific rules or replacement lists. Language-specific examples go with the instructions in `supabase/functions/cloud-cleanup/handler.mjs`. Very long input keeps the original instead of being truncated.
+The instructions apply generally to quantities, attributes, dates and clauses, without replacement lists. Language-specific examples and the rule for continuing after a letter's salutation go with the instructions in `supabase/functions/cloud-cleanup/handler.mjs`. Very long input keeps the original instead of being truncated.
+
+Numbers keep their form: number words stay words and digits stay digits. Spoken punctuation such as "Komma" or "Punkt" becomes the mark only when it is clearly meant as one, not between numbers or as a word in the sentence. Dictated email and web addresses are written in their usual form.
 
 Explicit quantity corrections (a number, optional filler, a correction signal and a replacement number) are resolved directly from the source words first. Ambiguous decimals and sentence boundaries are left alone. The model cannot rewrite quantities or drop other words when no correction signals remain.
 
