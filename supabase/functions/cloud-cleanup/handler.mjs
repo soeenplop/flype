@@ -1,4 +1,4 @@
-const MODEL = 'gpt-6-luna';
+const MODEL = 'gpt-6.1-terra';
 const MAX_BYTES = 5_000;
 const MAX_TERMS = 100;
 const MAX_SOUND_ALIKES = 12;

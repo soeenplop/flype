@@ -107,7 +107,7 @@ test('limits answer without contacting OpenAI', async () => {
   f.restore();
 });
 
-test('a permitted request forwards the token, counts bytes and asks Luna for structured text', async () => {
+test('a permitted request forwards the token, counts bytes and asks Terra for structured text', async () => {
   const f = fixture();
   const response = await f.invoke();
   assert.equal(response.status, 200);
@@ -120,7 +120,7 @@ test('a permitted request forwards the token, counts bytes and asks Luna for str
   assert.deepEqual(JSON.parse(quota.options.body), { p_characters: size });
 
   const params = f.calls.openAI[0];
-  assert.equal(params.model, 'gpt-6-luna');
+  assert.equal(params.model, 'gpt-6.1-terra');
   assert.equal(params.store, false);
   assert.equal(params.service_tier, 'fast');
   assert.equal(params.text.format.type, 'json_schema');

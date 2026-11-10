@@ -40,7 +40,7 @@ For Sign in with Apple, set `one.binda.flype.app` as the Primary App ID. A Servi
 
 ## Cloud cleanup with OpenAI
 
-Cleanup runs only on the OpenAI model `gpt-6-luna`. Choosing Cleaned asks for consent, which is stored per device, needs a signed-in account and is off by default. The mode itself syncs, so a new device never starts sending text without its own consent.
+Cleanup runs only on the OpenAI model `gpt-6.1-terra`. Choosing Cleaned asks for consent, which is stored per device, needs a signed-in account and is off by default. The mode itself syncs, so a new device never starts sending text without its own consent.
 
 1. The app calls the Edge Function `cloud-cleanup` with the user's token. The OpenAI key is only a server-side function secret, `OPENAI_API_KEY`.
 2. The function takes quota through `flype_take_cleanup_quota`, which also verifies the token. Every account: 10 requests a minute. Free: 100 requests and 20,000 characters a week (weeks start Monday, UTC), at most 200 requests and 50,000 characters a day. Pro: no weekly allowance, 500 requests and 150,000 characters a day as fair use. The text around the cursor counts toward the characters. For all users together: 20,000 requests a day. A used-up free week answers 429 with scope `week`, and the apps say so. The values are in migration `202611090001_cleanup_plans.sql`.

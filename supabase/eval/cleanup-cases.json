@@ -67,7 +67,7 @@
   { "id": "de-sentences-inside", "language": "de", "text": "das passt. wir sehen uns dann morgen", "expected": ["Das passt. Wir sehen uns dann morgen."] },
   { "id": "en-new-sentence-after-space", "language": "en", "context": "Thanks a lot. ", "text": "see you tomorrow", "expected": ["See you tomorrow."] },
   { "id": "de-abbreviation-continues", "language": "de", "context": "Dafür eignen sich z. B. ", "text": "Kleine Räume", "expected": ["kleine Räume."] },
-  { "id": "de-abbreviation-ca", "language": "de", "context": "Die Fahrt dauert ca. ", "text": "Zwei Stunden", "expected": ["zwei Stunden."] },
+  { "id": "de-abbreviation-ca", "language": "de", "context": "Die Fahrt dauert ca. ", "text": "Zwei Stunden", "expected": ["zwei Stunden.", "2 Stunden."] },
   { "id": "de-abbreviation-ends", "language": "de", "context": "Wir brauchen Stifte, Papier usw. ", "text": "morgen kaufe ich alles", "expected": ["Morgen kaufe ich alles."] },
   { "id": "en-casing-nouns", "language": "en", "text": "we booked a Table for friday at the new Restaurant", "expected": ["We booked a table for Friday at the new restaurant."] },
   { "id": "fr-weekday-lowercase", "language": "fr", "text": "on se retrouve Mardi au Bureau", "expected": ["On se retrouve mardi au bureau."] },

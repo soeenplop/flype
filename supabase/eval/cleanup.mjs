@@ -1,7 +1,7 @@
 // Checks the cleanup prompt against the real OpenAI model with fixed example dictations.
 // It builds every request through the same handler as the Edge Function, so it tests the real prompt.
 //
-//   OPENAI_API_KEY=… node supabase/eval/cleanup.mjs [--model gpt-6-luna] [--tier fast|default] [--only de-dass]
+//   OPENAI_API_KEY=… node supabase/eval/cleanup.mjs [--model gpt-6.1-terra] [--tier fast|default] [--only de-dass]
 //
 // It costs a few tenths of a cent per run and is not part of ./scripts/check.sh. The examples are made up.
 import { readFile } from 'node:fs/promises';

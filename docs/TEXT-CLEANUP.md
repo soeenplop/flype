@@ -28,6 +28,8 @@ A repeated subject followed by a different form of "to be" can revoke an unfinis
 
 Both apps log the duration of each step after the recording (recognition, dictionary check, cleanup, on the Mac also inserting) with the log category `timing`, as numbers only. The cleanup function logs its own split into quota check and OpenAI call, with input, cached, output and reasoning tokens. Together they show where the wait comes from before the model, its reasoning effort or the prompt change.
 
+`gpt-6.1-terra` with low reasoning effort replaced `gpt-6-luna` on 2026-11-10. With the full prompt it passed every example in five runs, while Luna missed about four in 294 answers, for about seven times the cost at roughly 0.4 dollars per 1,000 dictations in the fast tier. More reasoning did not help any model, and a much shorter prompt did worse on every model and cost more, because it is too short for OpenAI's prompt cache.
+
 ## Testing with the real model
 
 The handler tests in `supabase/functions/cloud-cleanup/handler.test.mjs` cover the request, quota and prompt wiring with a fake OpenAI client.
