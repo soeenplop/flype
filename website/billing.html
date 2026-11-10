@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Flype Pro</title>
+<link rel="alternate" hreflang="de" href="billing.html">
+<link rel="alternate" hreflang="en" href="en/billing.html">
+<link rel="icon" href="assets/icon.png">
+<link rel="stylesheet" href="assets/site.css">
+<script>
+  // Stripe always returns here; other browser languages get the English page with the same result.
+  if (!/^de\b/i.test(navigator.language || "")) location.replace("en/billing.html" + location.search);
+</script>
+</head>
+<body class="page">
+<a class="skip" href="#inhalt">Zum Inhalt springen</a>
+<header class="page-head">
+  <a class="brand" href="index.html" aria-label="Flype Startseite"><svg class="bars" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="8.5" width="3" height="7" rx="1.5"/><rect x="6" y="5" width="3" height="14" rx="1.5"/><rect x="10.5" y="1.5" width="3" height="21" rx="1.5"/><rect x="15" y="5" width="3" height="14" rx="1.5"/><rect x="19.5" y="8.5" width="3" height="7" rx="1.5"/></svg>flype</a>
+  <nav aria-label="Seiten"><a href="support.html">Support</a><a href="datenschutz.html">Datenschutz</a><a href="impressum.html">Impressum</a><a class="lang" href="en/billing.html" hreflang="en" lang="en">EN</a></nav>
+</header>
+<main class="prose" id="inhalt">
+  <section data-result="success" hidden>
+    <h1>Danke, Flype Pro ist aktiv</h1>
+    <p class="lead">Du bereinigst jetzt ohne Wochenlimit, auf allen Geräten mit deinem Konto. Die App zeigt dein Abo nach wenigen Sekunden an.</p>
+  </section>
+  <section data-result="cancel" hidden>
+    <h1>Kein Abo abgeschlossen</h1>
+    <p class="lead">Es wurde nichts berechnet. Du kannst Flype Pro jederzeit in der App unter <strong>Dein Konto</strong> starten.</p>
+  </section>
+  <section data-result="portal">
+    <h1>Flype Pro</h1>
+    <p class="lead">Deine Änderungen sind gespeichert. Die App zeigt sie nach wenigen Sekunden an.</p>
+  </section>
+  <p><a class="btn btn-dark" href="flype-mac://billing/done">Zurück zu Flype</a></p>
+  <p>Fragen zu deinem Abo oder einer Rechnung? Schreib uns an <a href="mailto:hello@binda.one">hello@binda.one</a>.</p>
+</main>
+<footer class="footer">
+  <div class="footer-brand"><p>Flype von binda UG (haftungsbeschränkt), Münster</p></div>
+</footer>
+<script>
+  (() => {
+    const result = new URLSearchParams(location.search).get("result");
+    const match = document.querySelector('[data-result="' + result + '"]');
+    if (!match) return;
+    document.querySelectorAll("[data-result]").forEach((section) => { section.hidden = section !== match; });
+  })();
+</script>
+</body>
+</html>

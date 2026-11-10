@@ -14,6 +14,7 @@ Every push to `main` that changes `website/` deploys the site to GitHub Pages th
 | `datenschutz.html` | `en/privacy.html` | Privacy policy (German is authoritative) | Privacy URL (required) |
 | `support.html` | `en/support.html` | Setup, problems, account deletion, contact | Support URL (required) |
 | `impressum.html` | `en/imprint.html` | Legal notice (German is authoritative) | |
+| `billing.html` | `en/billing.html` | Return page after Stripe checkout and portal (`?result=` `success`, `cancel` or `portal`), not indexed | |
 
 Each language is its own file, so always change both. Navigation for both languages is in `assets/site.js`. The privacy pages are the only copy of the privacy policy.
 
@@ -21,7 +22,7 @@ Each language is its own file, so always change both. Navigation for both langua
 
 1. Execute OpenAI's data processing agreement, because the privacy policy names OpenAI as a processor. Update the policy if the hosting or a provider changes.
 2. Get the privacy policy and legal notice reviewed. Add the VAT ID to the legal notice if there is one.
-3. Add the price to the FAQ in both `index.html` files.
+3. Add the prices of Flype Pro (5.95 € a month, 59.95 € a year with 7 days free) to the FAQ in both `index.html` files.
 4. At launch, update the availability note in the hero and the download answer in the FAQ in both languages, and add real download links.
 5. Put the addresses in App Store Connect. The apps already link to them through `shared/FlypeCore/Sources/FlypeCore/FlypeLinks.swift`, which needs updating if the site gets its own domain.
 
