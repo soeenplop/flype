@@ -1,0 +1,117 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+
+    ]
+  },
+  "identifier" : "6F1A2B3C",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_developerTeamID" : "4K9Y59Z87Y",
+    "_locale" : "de_DE",
+    "_storefront" : "DEU",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21500001",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "Flype Pro",
+          "locale" : "de"
+        },
+        {
+          "description" : "",
+          "displayName" : "Flype Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "Flype Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "59.95",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6500000001",
+          "introductoryOffer" : {
+            "internalID" : "6500000003",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Bereinigung ohne Wochenlimit auf allen Geräten",
+              "displayName" : "Flype Pro – Jährlich",
+              "locale" : "de"
+            },
+            {
+              "description" : "Cleanup without a weekly limit on all devices",
+              "displayName" : "Flype Pro – Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "one.binda.flype.pro.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Flype Pro Jährlich",
+          "subscriptionGroupID" : "21500001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "5.95",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6500000002",
+          "localizations" : [
+            {
+              "description" : "Bereinigung ohne Wochenlimit auf allen Geräten",
+              "displayName" : "Flype Pro – Monatlich",
+              "locale" : "de"
+            },
+            {
+              "description" : "Cleanup without a weekly limit on all devices",
+              "displayName" : "Flype Pro – Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "one.binda.flype.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Flype Pro Monatlich",
+          "subscriptionGroupID" : "21500001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

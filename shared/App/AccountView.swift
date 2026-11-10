@@ -77,9 +77,7 @@ struct AccountView: View {
                     Button(L10n.text("Konto löschen"), role: .destructive) { confirmingDeletion = true }
                         .disabled(account.syncing)
                 }
-                #if os(macOS)
-                    if !account.needsSignIn { SubscriptionView(account: account) }
-                #endif
+                if !account.needsSignIn { SubscriptionView(account: account) }
             } else {
                 VStack(spacing: 12) {
                     signInButtons(importGuest: importGuest)

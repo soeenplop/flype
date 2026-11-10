@@ -349,6 +349,56 @@ public enum L10n {
             "Contratada en el App Store. Gestiónala en tu iPhone o iPad.",
             "Afgesloten via de App Store. Beheer het op je iPhone of iPad.",
         ],
+        "Über Stripe abgeschlossen. Verwalte es in Flype auf deinem Mac.": [
+            "Purchased through Stripe. Manage it in Flype on your Mac.",
+            "Souscrit via Stripe. Gérez-le dans Flype sur votre Mac.",
+            "Acquistato tramite Stripe. Gestiscilo in Flype sul Mac.",
+            "Contratada con Stripe. Gestiónala en Flype en tu Mac.",
+            "Afgesloten via Stripe. Beheer het in Flype op je Mac.",
+        ],
+        "Flype Pro ansehen": [
+            "See Flype Pro",
+            "Découvrir Flype Pro",
+            "Scopri Flype Pro",
+            "Ver Flype Pro",
+            "Flype Pro bekijken",
+        ],
+        "Käufe wiederherstellen": [
+            "Restore purchases",
+            "Restaurer les achats",
+            "Ripristina acquisti",
+            "Restaurar compras",
+            "Aankopen herstellen",
+        ],
+        "Die Käufe konnten nicht wiederhergestellt werden. Bitte versuche es später erneut.": [
+            "Purchases could not be restored. Please try again later.",
+            "Les achats n’ont pas pu être restaurés. Réessayez plus tard.",
+            "Non è stato possibile ripristinare gli acquisti. Riprova più tardi.",
+            "No se pudieron restaurar las compras. Vuelve a intentarlo más tarde.",
+            "Aankopen konden niet worden hersteld. Probeer het later opnieuw.",
+        ],
+        "Mit dieser Apple-ID gibt es kein aktives Flype Pro.": [
+            "There is no active Flype Pro for this Apple Account.",
+            "Aucun Flype Pro actif pour ce compte Apple.",
+            "Nessun Flype Pro attivo per questo Account Apple.",
+            "No hay ningún Flype Pro activo para esta cuenta de Apple.",
+            "Er is geen actief Flype Pro voor deze Apple-account.",
+        ],
+        "Dein Kauf wird übertragen, sobald die Verbindung klappt.": [
+            "Your purchase will be transferred as soon as the connection works.",
+            "Votre achat sera transmis dès que la connexion fonctionnera.",
+            "Il tuo acquisto verrà trasmesso non appena la connessione funziona.",
+            "Tu compra se transferirá en cuanto funcione la conexión.",
+            "Je aankoop wordt doorgegeven zodra de verbinding werkt.",
+        ],
+        "Dieses Abo gehört zu einem anderen Flype-Konto. Melde dich mit dem Konto an, mit dem du Flype Pro abgeschlossen hast.":
+            [
+                "This subscription belongs to another Flype account. Sign in with the account you used to get Flype Pro.",
+                "Cet abonnement appartient à un autre compte Flype. Connectez-vous avec le compte utilisé pour souscrire Flype Pro.",
+                "Questo abbonamento appartiene a un altro account Flype. Accedi con l’account con cui hai sottoscritto Flype Pro.",
+                "Esta suscripción pertenece a otra cuenta de Flype. Inicia sesión con la cuenta con la que contrataste Flype Pro.",
+                "Dit abonnement hoort bij een ander Flype-account. Log in met het account waarmee je Flype Pro hebt afgesloten.",
+            ],
         "Die Apple-Verknüpfung konnte nicht aufgehoben werden. Dein Konto wurde nicht gelöscht. Bitte versuche es später erneut.":
             [
                 "The Apple connection could not be revoked. Your account was not deleted. Please try again later.",

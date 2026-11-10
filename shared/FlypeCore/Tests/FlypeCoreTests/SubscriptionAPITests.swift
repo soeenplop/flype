@@ -105,6 +105,25 @@ final class SubscriptionAPITests: XCTestCase, @unchecked Sendable {
         }
     }
 
+    func testAppStorePurchasesAreReportedAndForeignOnesExplained() async throws {
+        BillingProtocol.handler = { request in
+            XCTAssertEqual(request.url?.path, "/functions/v1/app-store-verify")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer unit-test-token")
+            XCTAssertEqual(try Self.body(request), ["transactionId": "2000000000000002"])
+            return (200, Data(#"{"plan":"pro","source":"app_store","status":"trialing","trial_available":false}"#.utf8))
+        }
+        let status = try await api().verifyAppStorePurchase(
+            token: "unit-test-token", transactionID: 2_000_000_000_000_002)
+        XCTAssertEqual(status.source, .appStore)
+        XCTAssertEqual(status.state, .trialing)
+
+        BillingProtocol.handler = { _ in (409, Data()) }
+        do {
+            _ = try await api().verifyAppStorePurchase(token: "unit-test-token", transactionID: 1)
+            XCTFail("A foreign purchase must fail")
+        } catch SupabaseAPI.Failure.purchaseOwnedElsewhere {} catch { XCTFail("Wrong error: \(error)") }
+    }
+
     func testFailedCancellationKeepsTheAccount() async throws {
         let session = try JSONDecoder().decode(
             CloudSession.self,

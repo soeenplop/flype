@@ -51,7 +51,7 @@ public struct SupabaseAPI: Sendable {
     public init(session: URLSession = .shared) { self.session = session }
     public enum Failure: LocalizedError {
         case unauthorized, sessionExpired, rejected, unavailable, setupRequired, appleRevocationUnavailable
-        case subscriptionCancellationUnavailable
+        case subscriptionCancellationUnavailable, purchaseOwnedElsewhere
         case limitReached, weeklyLimitReached
         /// Both limits keep the original text and are explained to the person instead of a generic error.
         public var isLimit: Bool { self == .limitReached || self == .weeklyLimitReached }
@@ -59,6 +59,8 @@ public struct SupabaseAPI: Sendable {
             switch self {
             case .appleRevocationUnavailable:
                 "Die Apple-Verknüpfung konnte nicht aufgehoben werden. Dein Konto wurde nicht gelöscht. Bitte versuche es später erneut."
+            case .purchaseOwnedElsewhere:
+                "Dieses Abo gehört zu einem anderen Flype-Konto. Melde dich mit dem Konto an, mit dem du Flype Pro abgeschlossen hast."
             case .subscriptionCancellationUnavailable:
                 "Dein Abo konnte nicht beendet werden. Dein Konto wurde nicht gelöscht. Bitte versuche es später erneut."
             case .limitReached:
@@ -136,6 +138,11 @@ public struct SupabaseAPI: Sendable {
     static func isStripePage(_ url: URL) -> Bool {
         guard url.scheme == "https", let host = url.host() else { return false }
         return host == "stripe.com" || host.hasSuffix(".stripe.com")
+    }
+    /// Reports an App Store transaction. The server checks it with Apple and answers with the new status.
+    public func verifyAppStorePurchase(token: String, transactionID: UInt64) async throws -> SubscriptionStatus {
+        try await request(
+            path: "functions/v1/app-store-verify", token: token, body: ["transactionId": String(transactionID)])
     }
     /// Ends every Stripe subscription of the account right away. Without the billing function deployed,
     /// no subscription can exist.
@@ -233,6 +240,7 @@ public struct SupabaseAPI: Sendable {
         if status == 401 { throw Failure.unauthorized }
         if status == 400 { throw Failure.rejected }
         if status == 404 { throw Failure.setupRequired }
+        if status == 409 { throw Failure.purchaseOwnedElsewhere }
         if status == 429 {
             let scope = (try? JSONDecoder().decode(LimitBody.self, from: responseData))?.scope
             throw scope == "week" ? Failure.weeklyLimitReached : Failure.limitReached

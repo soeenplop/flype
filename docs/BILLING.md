@@ -78,6 +78,10 @@ The Edge Function `app-store-notifications` receives App Store Server Notificati
 
 An introductory offer records `trial_used_at`, so the Stripe trial on the Mac is no longer offered either.
 
+In the app, Flype Pro appears under **Dein Konto** like on the Mac (`shared/App/SubscriptionView.swift`). "Flype Pro ansehen" opens Apple's `SubscriptionStoreView` with both plans, the introductory offer, the privacy policy and Apple's standard EULA; "Käufe wiederherstellen" runs `AppStore.sync()` and reports the active transactions. `ios/App/AppStoreSubscriptions.swift` listens to `Transaction.updates` from launch, reports unfinished transactions again at every sign-in and finishes a transaction only after the server recorded it or said it belongs to another account. A Pro from Stripe shows without a link to Stripe.
+
+For the simulator, the scheme uses `ios/Flype.storekit` with both products. Purchases there are signed locally and unknown to Apple, so the server cannot record them and the transaction stays unfinished; the whole flow needs a sandbox account on a device.
+
 ### Setting up the App Store
 
 1. In App Store Connect, create the subscription group and both subscriptions with the IDs above, prices 5.95 € and 59.95 € with Germany as the base country, and the free one-week introductory offer on the yearly plan only.

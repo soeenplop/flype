@@ -31,7 +31,7 @@ final class AccountController: NSObject, ObservableObject, ASWebAuthenticationPr
     private var billingOpenedAt = Date.distantPast
     private static weak var current: AccountController?
     private var refreshTask: Task<CloudSession, Error>?
-    private let api = SupabaseAPI()
+    let api = SupabaseAPI()
     private var browser: ASWebAuthenticationSession?
     private var epoch = UUID()
     private var timer: Task<Void, Never>?
@@ -43,6 +43,10 @@ final class AccountController: NSObject, ObservableObject, ASWebAuthenticationPr
     private var observedSettings = SyncedSettings.current()
     private var deletionConfirmation = AccountDeletionConfirmation()
     private var store: PersonalDictionaryStore? { try? .shared() }
+    #if os(iOS)
+        /// Buys and restores Flype Pro through the App Store for this account.
+        private(set) lazy var appStore = AppStoreSubscriptions(account: self)
+    #endif
     override init() {
         defer { Self.current = self }
         super.init()
@@ -66,6 +70,10 @@ final class AccountController: NSObject, ObservableObject, ASWebAuthenticationPr
                 self.observedSettings = current
                 self.scheduleSync()
             }.store(in: &subscriptions)
+        #if os(iOS)
+            // Starts listening for App Store transactions right away, as StoreKit expects.
+            _ = appStore
+        #endif
         timer = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.sync()
@@ -336,6 +344,17 @@ final class AccountController: NSObject, ObservableObject, ASWebAuthenticationPr
         subscriptionCheckedAt = now
         subscription = status
     }
+    /// A current access token for server calls outside the sync, renewing the session when needed.
+    func validToken() async throws -> String {
+        guard var current = session else { throw SupabaseAPI.Failure.unauthorized }
+        if current.needsRefresh { current = try await refreshedSession(current) }
+        return current.accessToken
+    }
+    /// Shows a status the server just returned, without waiting for the next check.
+    func apply(_ status: SubscriptionStatus) {
+        subscription = status
+        subscriptionCheckedAt = Date()
+    }
     private func forgetSubscription() {
         subscription = nil
         subscriptionCheckedAt = .distantPast
@@ -344,13 +363,12 @@ final class AccountController: NSObject, ObservableObject, ASWebAuthenticationPr
     #if os(macOS)
         /// Opens Stripe Checkout for a plan, or the customer portal without one, in the default browser.
         func openBilling(period: BillingPeriod?) async {
-            guard var current = session, !openingBilling, !working else { return }
+            guard session != nil, !openingBilling, !working else { return }
             openingBilling = true
             defer { openingBilling = false }
             message = nil
             do {
-                if current.needsRefresh { current = try await refreshedSession(current) }
-                let url = try await api.billingPage(token: current.accessToken, period: period)
+                let url = try await api.billingPage(token: try await validToken(), period: period)
                 billingOpenedAt = Date()
                 NSWorkspace.shared.open(url)
             } catch { message = "Die Bezahlseite konnte nicht geöffnet werden. Bitte versuche es später erneut." }

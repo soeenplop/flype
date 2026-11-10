@@ -13,6 +13,10 @@ public enum FlypeLinks {
         page(language == .de ? "support.html" : "en/support.html")
     }
 
+    /// Apple's standard licence agreement, which the subscriptions use as their terms.
+    public static let appleStandardEULA = URL(
+        string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
+
     private static func page(_ path: String) -> URL {
         URL(string: website + path)!
     }

@@ -16,6 +16,7 @@ Checked on November 4, 2026 against the [App Review Guidelines](https://develope
 | 5.1.1 (i) Privacy in the app | "Deine Privatsphäre" screen, with a link to the privacy policy. |
 | 5.1.1 (v) Account deletion | "Konto löschen" under "Dein Konto", including revoking the Apple token. |
 | 5.1.2 (i) Sharing with third-party AI | Cloud cleanup is off, needs an account and a dialog naming OpenAI, the data and the purpose. The switch is per device and can be turned off at any time. |
+| 3.1.1 and 3.1.2 Subscriptions | Flype Pro is sold in the app only through StoreKit (`SubscriptionStoreView` with price, period, trial, renewal, privacy policy and Apple's standard EULA). Restoring purchases is in Dein Konto. A Pro bought on the Mac through Stripe is honoured (3.1.3(b), multiplatform), with no link to it in the app. |
 | Privacy manifest | `shared/Resources/PrivacyInfo.xcprivacy` in app, keyboard and Mac app. |
 | Export compliance | `ITSAppUsesNonExemptEncryption = false`. The app only uses HTTPS and hashes. |
 | Private APIs | `PreviousAppReturn` and KeyboardKitHostPlugin are Debug only and absent from Release binaries. |
@@ -57,6 +58,8 @@ Ongoing: `APPLE_CLIENT_SECRET` is a JWT valid for at most six months and must be
 >
 > Optional cleanup: by default, Flype inserts the recognized text verbatim. Cleanup runs in the cloud. To test it, sign in under Dein Konto, then open Einstellungen and choose „Bereinigt“ in the Dein Schreibstil section. A dialog names OpenAI and the data sent and asks for permission first. When on, the transcribed text, up to 200 characters before and after the cursor and matching terms from the personal dictionary go through our Supabase function to OpenAI. Recordings are never sent. If the service is unavailable, the app inserts the recognized text unchanged.
 >
+> Flype Pro (optional subscription): signed in under Dein Konto, tap „Flype Pro ansehen“. It lifts the weekly cleanup allowance. The yearly plan starts with a free week. A subscription bought in our Mac app is also recognised here; the iOS app offers only the in-app purchase.
+>
 > Account deletion: Dein Konto > Konto löschen.
 
 ## Privacy details in App Store Connect
@@ -69,6 +72,7 @@ This is a proposal and must be confirmed before submitting, especially the last 
 | User ID | yes | no | App functionality |
 | Other user content (dictionary including learned words, settings) | yes | no | App functionality |
 | Usage data (number of requests and characters for the limit) | yes | no | App functionality |
+| Purchase history (Flype Pro plan, status and dates, App Store or Stripe subscription ID) | yes | no | App functionality |
 | Other user content (transcribed text and field text with cloud cleanup on) | no, OpenAI gets no user ID | no | App functionality |
 
 Audio is not listed, because it does not leave the device. Flype does not store transcribed text, but OpenAI says it keeps it for up to 30 days for abuse detection, so it counts as collected here. Without an account, no data is collected. `shared/Resources/PrivacyInfo.xcprivacy` lists the same data types and must change along with any different classification.
