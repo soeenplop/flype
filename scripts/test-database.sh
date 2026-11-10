@@ -12,7 +12,7 @@ docker exec -i "$container" psql -U postgres -v ON_ERROR_STOP=1 < supabase/tests
 for migration in supabase/migrations/*.sql; do
   docker exec -i "$container" psql -U postgres -v ON_ERROR_STOP=1 < "$migration"
 done
-for suite in supabase/tests/dictionary.sql supabase/tests/settings.sql supabase/tests/cloud_cleanup.sql supabase/tests/account_deletion.sql; do
+for suite in supabase/tests/dictionary.sql supabase/tests/settings.sql supabase/tests/cloud_cleanup.sql supabase/tests/account_deletion.sql supabase/tests/billing.sql; do
   docker exec -i "$container" psql -U postgres -v ON_ERROR_STOP=1 < "$suite"
 done
 print 'Datenbanktests erfolgreich.'
