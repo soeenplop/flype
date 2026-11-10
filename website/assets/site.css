@@ -314,3 +314,16 @@ details p { padding: 0 34px 20px 0; color: var(--muted); }
 @media (max-width: 600px) {
   .gallery-scroll { grid-template-columns: minmax(0, 270px); gap: 36px; }
 }
+
+/* Billing return page: the dark start page with the closing gradient as a card. */
+.billing-page { min-height: 100vh; display: flex; flex-direction: column; }
+.billing-page .page-head { width: 100%; max-width: 1180px; align-items: center; }
+.billing-page .page-head nav a { color: #d9d6de; }
+.billing { flex: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; max-width: 1180px; margin: 0 auto; padding: 28px 10px 8px; }
+.billing-card { padding: clamp(56px, 9vw, 112px) var(--gutter); border-radius: 22px; text-align: center; color: #fff; background: linear-gradient(177deg, #2d1a52 0%, #4a2d80 28%, #6f4cab 62%, #b199df 100%); }
+.billing-card img { margin: 0 auto 26px; border-radius: 18px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .18), 0 18px 44px rgba(30, 12, 64, .45); }
+.billing-card .section-label { color: #e5daef; }
+.billing-card h1 { max-width: 13em; margin: 0 auto; font-size: clamp(40px, 6.4vw, 76px); letter-spacing: -.032em; line-height: 1.02; }
+.billing-card .lead { max-width: 32em; margin: 20px auto 0; font-size: clamp(17px, 1.6vw, 20px); line-height: 1.42; color: rgba(255, 255, 255, .86); }
+.billing-help { margin-top: 26px; text-align: center; color: var(--muted); font-size: 16px; }
+.billing-page .footer { width: 100%; }

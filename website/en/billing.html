@@ -6,34 +6,46 @@
 <meta name="robots" content="noindex">
 <title>Flype Pro</title>
 <link rel="alternate" hreflang="de" href="../billing.html">
-<link rel="alternate" hreflang="en" href="billing.html">
+<link rel="alternate" hreflang="en" href="../en/billing.html">
 <link rel="icon" href="../assets/icon.png">
 <link rel="stylesheet" href="../assets/site.css">
 </head>
-<body class="page">
+<body class="billing-page">
 <a class="skip" href="#content">Skip to content</a>
 <header class="page-head">
   <a class="brand" href="index.html" aria-label="Flype home"><svg class="bars" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="8.5" width="3" height="7" rx="1.5"/><rect x="6" y="5" width="3" height="14" rx="1.5"/><rect x="10.5" y="1.5" width="3" height="21" rx="1.5"/><rect x="15" y="5" width="3" height="14" rx="1.5"/><rect x="19.5" y="8.5" width="3" height="7" rx="1.5"/></svg>flype</a>
-  <nav aria-label="Pages"><a href="support.html">Support</a><a href="privacy.html">Privacy</a><a href="imprint.html">Legal notice</a><a class="lang" href="../billing.html" hreflang="de" lang="de">DE</a></nav>
+  <nav aria-label="Pages"><a href="support.html">Support</a><a class="lang" href="../billing.html" hreflang="de" lang="de">DE</a></nav>
 </header>
-<main class="prose" id="content">
-  <section data-result="success" hidden>
-    <h1>Thank you, Flype Pro is active</h1>
-    <p class="lead">You can now clean up without a weekly limit, on every device with your account. The app shows your subscription within a few seconds.</p>
+<main class="billing" id="content">
+  <section class="billing-card">
+    <img src="../assets/icon.png" alt="" width="76" height="76">
+    <p class="section-label">Flype Pro</p>
+    <div data-result="success" hidden>
+      <h1>Thank you! Flype Pro is active.</h1>
+      <p class="lead">You can now clean up without a weekly limit, on every device with your account. The app shows your subscription within a few seconds.</p>
+    </div>
+    <div data-result="cancel" hidden>
+      <h1>No subscription started.</h1>
+      <p class="lead">Nothing was charged. You can start Flype Pro at any time in the app under “Your account”.</p>
+    </div>
+    <div data-result="portal">
+      <h1>All saved.</h1>
+      <p class="lead">Your subscription changes are in place. The app shows them within a few seconds.</p>
+    </div>
+    <div class="hero-actions"><a class="btn btn-light" href="flype-mac://billing/done">Back to Flype</a></div>
   </section>
-  <section data-result="cancel" hidden>
-    <h1>No subscription started</h1>
-    <p class="lead">Nothing was charged. You can start Flype Pro at any time in the app under <strong>Your account</strong>.</p>
-  </section>
-  <section data-result="portal">
-    <h1>Flype Pro</h1>
-    <p class="lead">Your changes are saved. The app shows them within a few seconds.</p>
-  </section>
-  <p><a class="btn btn-dark" href="flype-mac://billing/done">Back to Flype</a></p>
-  <p>Questions about your subscription or an invoice? Write to <a href="mailto:hello@binda.one">hello@binda.one</a>.</p>
+  <p class="billing-help">Questions about your subscription or an invoice? <a class="text-link" href="mailto:hello@binda.one">hello@binda.one</a></p>
 </main>
 <footer class="footer">
-  <div class="footer-brand"><p>Flype by binda UG (haftungsbeschränkt), Münster</p></div>
+  <div class="footer-brand">
+    <img src="../assets/icon.png" alt="" width="44" height="44">
+    <p>Flype by binda UG (haftungsbeschränkt), Münster</p>
+  </div>
+  <nav aria-label="Legal and help">
+    <a href="support.html">Support</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="imprint.html">Legal notice</a>
+  </nav>
 </footer>
 <script>
   (() => {
