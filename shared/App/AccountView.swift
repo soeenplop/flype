@@ -77,6 +77,9 @@ struct AccountView: View {
                     Button(L10n.text("Konto löschen"), role: .destructive) { confirmingDeletion = true }
                         .disabled(account.syncing)
                 }
+                #if os(macOS)
+                    if !account.needsSignIn { SubscriptionView(account: account) }
+                #endif
             } else {
                 VStack(spacing: 12) {
                     signInButtons(importGuest: importGuest)
@@ -115,11 +118,21 @@ struct AccountView: View {
                 Button(L10n.text("Konto löschen"), role: .destructive) { Task { await account.deleteAccount() } }
                 Button(L10n.text("Abbrechen"), role: .cancel) {}
             } message: {
-                Text(
-                    L10n.text(
-                        "Dein Konto und alle synchronisierten Wörter und Einstellungen werden unwiderruflich gelöscht."
-                    ))
+                Text(deletionWarning)
             }
+    }
+    private var deletionWarning: String {
+        let warning = L10n.text(
+            "Dein Konto und alle synchronisierten Wörter und Einstellungen werden unwiderruflich gelöscht.")
+        guard let subscription = account.subscription, subscription.isPro else { return warning }
+        switch subscription.source {
+        case .direct: return warning + " " + L10n.text("Dein Abo über Stripe endet dabei sofort.")
+        case .appStore:
+            return warning + " "
+                + L10n.text(
+                    "Dein Abo im App Store läuft weiter, bis du es in den Einstellungen deines iPhone kündigst.")
+        case .manual, nil: return warning
+        }
     }
     @ViewBuilder private func signInButtons(importGuest: Bool) -> some View {
         Button {

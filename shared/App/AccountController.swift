@@ -24,6 +24,11 @@ final class AccountController: NSObject, ObservableObject, ASWebAuthenticationPr
     /// Deleting needs a fresh Apple sign-in. The session stays valid, so syncing continues meanwhile.
     @Published private(set) var needsDeletionSignIn = false
     @Published var message: String?
+    /// Flype Pro as the server reports it; nil until the first answer for the signed-in account.
+    @Published private(set) var subscription: SubscriptionStatus?
+    @Published private(set) var openingBilling = false
+    private var subscriptionCheckedAt = Date.distantPast
+    private var billingOpenedAt = Date.distantPast
     private static weak var current: AccountController?
     private var refreshTask: Task<CloudSession, Error>?
     private let api = SupabaseAPI()
@@ -118,6 +123,7 @@ final class AccountController: NSObject, ObservableObject, ASWebAuthenticationPr
                     self.deletionConfirmation.signedIn(
                         account: session.user.id, provider: session.user.metadata?.provider)
                     self.session = session
+                    self.forgetSubscription()
                     self.needsSignIn = false
                     self.needsDeletionSignIn = false
                     self.cacheReady = false
@@ -146,6 +152,7 @@ final class AccountController: NSObject, ObservableObject, ASWebAuthenticationPr
         do {
             try CredentialVault.delete()
             session = nil
+            forgetSubscription()
             cacheReady = false
             try switchAccount(to: nil, importGuest: false)
             cacheReady = true
@@ -188,6 +195,7 @@ final class AccountController: NSObject, ObservableObject, ASWebAuthenticationPr
             try await api.deleteAccount(session: current)
             try CredentialVault.delete()
             session = nil
+            forgetSubscription()
             cacheReady = false
             let account = current.user.id.uuidString
             try switchAccount(to: nil, importGuest: false)
@@ -315,7 +323,44 @@ final class AccountController: NSObject, ObservableObject, ASWebAuthenticationPr
         } else {
             status = "Deine Änderungen werden gleich erneut abgeglichen."
         }
+        await refreshSubscription(token: current.accessToken, operation: operation)
     }
+
+    /// Checked once a minute, and on every sync for ten minutes after a Stripe page opened, so a finished
+    /// checkout shows as soon as the webhook has written it. A failed check keeps the last answer.
+    private func refreshSubscription(token: String, operation: UUID) async {
+        let now = Date()
+        guard now.timeIntervalSince(subscriptionCheckedAt) >= 60 || now.timeIntervalSince(billingOpenedAt) < 600
+        else { return }
+        guard let status = try? await api.subscriptionStatus(token: token), epoch == operation else { return }
+        subscriptionCheckedAt = now
+        subscription = status
+    }
+    private func forgetSubscription() {
+        subscription = nil
+        subscriptionCheckedAt = .distantPast
+        billingOpenedAt = .distantPast
+    }
+    #if os(macOS)
+        /// Opens Stripe Checkout for a plan, or the customer portal without one, in the default browser.
+        func openBilling(period: BillingPeriod?) async {
+            guard var current = session, !openingBilling, !working else { return }
+            openingBilling = true
+            defer { openingBilling = false }
+            message = nil
+            do {
+                if current.needsRefresh { current = try await refreshedSession(current) }
+                let url = try await api.billingPage(token: current.accessToken, period: period)
+                billingOpenedAt = Date()
+                NSWorkspace.shared.open(url)
+            } catch { message = "Die Bezahlseite konnte nicht geöffnet werden. Bitte versuche es später erneut." }
+        }
+        /// The website sends people back here after Stripe; the next sync picks up the new state.
+        func returnedFromBilling() {
+            billingOpenedAt = Date()
+            Task { await sync() }
+        }
+    #endif
 
     private func syncDictionary(session: CloudSession, store: PersonalDictionaryStore, operation: UUID) async throws
         -> Bool

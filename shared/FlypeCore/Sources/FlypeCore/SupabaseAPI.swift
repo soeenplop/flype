@@ -51,6 +51,7 @@ public struct SupabaseAPI: Sendable {
     public init(session: URLSession = .shared) { self.session = session }
     public enum Failure: LocalizedError {
         case unauthorized, sessionExpired, rejected, unavailable, setupRequired, appleRevocationUnavailable
+        case subscriptionCancellationUnavailable
         case limitReached, weeklyLimitReached
         /// Both limits keep the original text and are explained to the person instead of a generic error.
         public var isLimit: Bool { self == .limitReached || self == .weeklyLimitReached }
@@ -58,6 +59,8 @@ public struct SupabaseAPI: Sendable {
             switch self {
             case .appleRevocationUnavailable:
                 "Die Apple-Verknüpfung konnte nicht aufgehoben werden. Dein Konto wurde nicht gelöscht. Bitte versuche es später erneut."
+            case .subscriptionCancellationUnavailable:
+                "Dein Abo konnte nicht beendet werden. Dein Konto wurde nicht gelöscht. Bitte versuche es später erneut."
             case .limitReached:
                 "Das Limit für die Cloud-Bereinigung ist gerade erreicht. Dein Originaltext ist bereit."
             case .weeklyLimitReached:
@@ -104,9 +107,12 @@ public struct SupabaseAPI: Sendable {
         guard result.deleted else { throw Failure.rejected }
     }
     /// Never discard the account (and its only revocation credentials) after a failed Apple request.
+    /// A Stripe subscription ends first, because nobody could cancel it once the account is gone.
     public func deleteAccount(session: CloudSession) async throws {
-        if session.user.metadata?.provider == "apple" {
-            guard let credential = session.appleRevocationToken else { throw Failure.appleRevocationUnavailable }
+        let usesApple = session.user.metadata?.provider == "apple"
+        if usesApple, session.appleRevocationToken == nil { throw Failure.appleRevocationUnavailable }
+        try await cancelSubscriptions(token: session.accessToken)
+        if usesApple, let credential = session.appleRevocationToken {
             do {
                 let _: Empty = try await request(
                     path: "functions/v1/revoke-apple-token", token: session.accessToken,
@@ -114,6 +120,32 @@ public struct SupabaseAPI: Sendable {
             } catch { throw Failure.appleRevocationUnavailable }
         }
         try await deleteAccount(token: session.accessToken)
+    }
+    public func subscriptionStatus(token: String) async throws -> SubscriptionStatus {
+        try await request(path: "rest/v1/rpc/flype_subscription_status", token: token, body: [:])
+    }
+    /// A Stripe page to open in the browser: checkout for a plan, or the customer portal without one.
+    /// The server answers with the portal instead of a checkout while a subscription runs.
+    public func billingPage(token: String, period: BillingPeriod?) async throws -> URL {
+        struct Result: Decodable { let url: URL }
+        let body = period.map { ["action": "checkout", "period": $0.rawValue] } ?? ["action": "portal"]
+        let result: Result = try await request(path: "functions/v1/billing", token: token, body: body)
+        guard Self.isStripePage(result.url) else { throw Failure.rejected }
+        return result.url
+    }
+    static func isStripePage(_ url: URL) -> Bool {
+        guard url.scheme == "https", let host = url.host() else { return false }
+        return host == "stripe.com" || host.hasSuffix(".stripe.com")
+    }
+    /// Ends every Stripe subscription of the account right away. Without the billing function deployed,
+    /// no subscription can exist.
+    public func cancelSubscriptions(token: String) async throws {
+        struct Result: Decodable { let canceled: Int }
+        do {
+            let _: Result = try await request(path: "functions/v1/billing", token: token, body: ["action": "cancel"])
+        } catch Failure.setupRequired {
+            return
+        } catch { throw Failure.subscriptionCancellationUnavailable }
     }
     public func readDictionary(token: String) async throws -> CloudDictionary {
         try await request(path: "rest/v1/rpc/flype_read_dictionary", token: token, body: [:])

@@ -145,6 +145,7 @@ final class SettingsAPITests: XCTestCase, @unchecked Sendable {
     func testAppleRevocationFailureNeverCallsDeletion() async throws {
         for status in [400, 401, 502, 503] {
             SyncProtocol.handler = { request in
+                if request.url?.path == "/functions/v1/billing" { return (200, Data(#"{"canceled":0}"#.utf8)) }
                 XCTAssertEqual(request.url?.path, "/functions/v1/revoke-apple-token")
                 return (status, Data("{}".utf8))
             }
@@ -182,6 +183,7 @@ final class SettingsAPITests: XCTestCase, @unchecked Sendable {
                         body["token_type_hint"],
                         fields.contains("provider_refresh_token") ? "refresh_token" : "access_token")
                 }
+                if path.contains("billing") { return (200, Data(#"{"canceled":1}"#.utf8)) }
                 return (200, Data((path.contains("revoke") ? "{}" : #"{"deleted":true}"#).utf8))
             }
             let session = try appleSession(providerFields: fields)
@@ -189,7 +191,9 @@ final class SettingsAPITests: XCTestCase, @unchecked Sendable {
             let restored = try JSONDecoder().decode(CloudSession.self, from: JSONEncoder().encode(session))
             XCTAssertEqual(restored.appleRevocationToken?.value, session.appleRevocationToken?.value)
             try await api().deleteAccount(session: restored)
-            XCTAssertEqual(paths, ["/functions/v1/revoke-apple-token", "/rest/v1/rpc/flype_delete_account"])
+            XCTAssertEqual(
+                paths,
+                ["/functions/v1/billing", "/functions/v1/revoke-apple-token", "/rest/v1/rpc/flype_delete_account"])
         }
     }
     func testAppleMissingCredentialCannotSilentlyDelete() async throws {

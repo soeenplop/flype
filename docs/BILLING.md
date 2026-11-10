@@ -27,6 +27,8 @@ The Mac app never sees a Stripe key. It calls the Edge Function `billing` with t
 
 After checkout or the portal, Stripe returns to `billing.html` on the website (`?result=success|cancel|portal`), which leads back to the app.
 
+In the app, Flype Pro appears under **Dein Konto** once signed in (`shared/App/SubscriptionView.swift`, Mac only for now). Without Pro, it offers the yearly plan (preselected, with the trial while it is open) and the monthly plan; with Pro, it shows the plan, the trial end, the renewal or end date (`period_ends_at`), a failed payment, and "Abo verwalten" for Stripe. The app asks `flype_subscription_status()` once a minute with the sync, and on every sync for ten minutes after it opened a Stripe page or the website sent it back through `flype-mac://billing/done`. Deleting the account calls `cancel` first, and the confirmation says that a Stripe subscription ends and an App Store subscription does not.
+
 The Edge Function `stripe-webhook` keeps `flype_entitlements` in step. It checks the `Stripe-Signature` header itself, so it runs without a Supabase token. For `checkout.session.completed` and every `customer.subscription.*` event it fetches the subscription from Stripe and writes its current state, so the order of events does not matter:
 
 | Stripe status | Entitlement |

@@ -30,6 +30,9 @@ struct FlypeMacApp: App {
                     Task { await speechSetup.refresh() }
                     Task { await account.sync() }
                 }
+                .onOpenURL { url in
+                    if url.scheme == "flype-mac", url.host() == "billing" { account.returnedFromBilling() }
+                }
                 .onReceive(
                     NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.sessionDidResignActiveNotification)
                 ) { _ in dictation.suspend() }
