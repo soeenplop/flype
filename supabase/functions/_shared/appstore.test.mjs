@@ -41,6 +41,18 @@ test('the .p8 key is read with PEM lines and escaped line breaks, and production
   assert.equal(requested.length, 1);
 });
 
+test('production refuses an unreleased app with 401, so the sandbox is asked; a sandbox 401 is an error', async () => {
+  const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+  const pem = Buffer.from(await crypto.subtle.exportKey('pkcs8', pair.privateKey)).toString('base64');
+  const answer = sandbox => async url =>
+    url.includes('sandbox') ? new Response(sandbox.body, { status: sandbox.status }) : new Response(null, { status: 401 });
+  let appStore = createAppStore({ privateKey: pem, keyID: 'K', issuerID: 'I', fetch: answer({ status: 200, body: '{"data":[]}' }) });
+  assert.deepEqual(await appStore('2'), { data: [] });
+  appStore = createAppStore({ privateKey: pem, keyID: 'K', issuerID: 'I', fetch: answer({ status: 401, body: null }) });
+  await assert.rejects(appStore('2'), error => error.status === 401);
+  await assert.rejects(appStore('2', 'Production'), error => error.status === 401);
+});
+
 test('a JWS payload is read and anything else is rejected', () => {
   assert.deepEqual(decodeJWS(jws({ productId: 'ä' })), { productId: 'ä' });
   for (const value of [undefined, '', 'abc', 'a.!!!.c', 42]) assert.equal(decodeJWS(value), null);

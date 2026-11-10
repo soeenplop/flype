@@ -52,10 +52,13 @@ export function createAppStore({ privateKey, keyID, issuerID, fetch }) {
   }
   // All subscription states of the transaction's group, or null if Apple does not know the transaction.
   // Without a known environment, production is asked first and the sandbox after a 404, as Apple advises.
+  // Production also answers 401 until the app was first released, while the sandbox already works.
   return async (transactionID, environment) => {
-    for (const name of environment ? [environment] : ['Production', 'Sandbox']) {
+    const names = environment ? [environment] : ['Production', 'Sandbox'];
+    for (const name of names) {
       const response = await request(name, transactionID);
-      if (response.status === 404) continue;
+      const last = name === names.at(-1);
+      if (response.status === 404 || (response.status === 401 && !last)) continue;
       if (!response.ok) {
         const error = new Error(`App Store ${name} request failed`);
         error.status = response.status;
