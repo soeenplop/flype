@@ -43,6 +43,7 @@ You need macOS 26 on Apple silicon and Xcode 26.2 or later. The backend tests al
 - [Design and languages](docs/DESIGN-AND-LANGUAGES.md)
 - [Recording start](docs/RECORDING-START.md)
 - [Text cleanup](docs/TEXT-CLEANUP.md)
+- [Flype Pro](docs/BILLING.md)
 - [Dictionary correction](docs/DICTIONARY-CORRECTION.md)
 - [Fast keyboard input](docs/ios/TYPING-INPUT.md)
 - [App Store submission](docs/ios/APP-STORE.md)

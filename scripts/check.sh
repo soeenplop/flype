@@ -25,6 +25,9 @@ case "${1:-all}" in
     backend)
         node --test supabase/functions/revoke-apple-token/index.test.mjs
         node --test supabase/functions/cloud-cleanup/handler.test.mjs
+        node --test supabase/functions/_shared/billing.test.mjs
+        node --test supabase/functions/billing/handler.test.mjs
+        node --test supabase/functions/stripe-webhook/handler.test.mjs
         node --test supabase/eval/cleanup.test.mjs
         ;;
     core)
