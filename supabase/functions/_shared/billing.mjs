@@ -136,6 +136,7 @@ export function entitlementFromSubscription(subscription, nowMs = Date.now()) {
         ...base,
         status: subscription.status,
         expires_at: new Date(periodEnd * 1000 + GRACE_MS).toISOString(),
+        period_ends_at: iso(periodEnd),
         will_renew: !subscription.cancel_at_period_end && !subscription.cancel_at,
       };
     // Stripe already moved the period on while it retries the payment, so only the grace counts.
@@ -145,17 +146,15 @@ export function entitlementFromSubscription(subscription, nowMs = Date.now()) {
         ...base,
         status: 'past_due',
         expires_at: new Date(Math.min(periodStart * 1000 + GRACE_MS, periodEnd * 1000)).toISOString(),
+        period_ends_at: iso(periodEnd),
         will_renew: false,
       };
     case 'canceled':
     case 'incomplete_expired':
-    case 'paused':
-      return {
-        ...base,
-        status: 'canceled',
-        expires_at: subscription.ended_at ? iso(subscription.ended_at) : new Date(nowMs).toISOString(),
-        will_renew: false,
-      };
+    case 'paused': {
+      const ended = subscription.ended_at ? iso(subscription.ended_at) : new Date(nowMs).toISOString();
+      return { ...base, status: 'canceled', expires_at: ended, period_ends_at: ended, will_renew: false };
+    }
     default:
       return null;
   }

@@ -8,6 +8,8 @@ alter table public.flype_entitlements
   add column status text not null default 'active' check (status in ('trialing', 'active', 'past_due', 'canceled')),
   add column period text check (period in ('month', 'year')),
   add column will_renew boolean not null default false,
+  -- End of the trial or paid period without the grace, for the dates the apps show.
+  add column period_ends_at timestamptz,
   -- Stripe subscription ID or the App Store's original transaction ID.
   add column external_id text;
 create unique index flype_entitlements_external_id on public.flype_entitlements(source, external_id)
@@ -43,6 +45,7 @@ begin
     'period', active.period,
     'will_renew', active.will_renew,
     'expires_at', active.expires_at,
+    'period_ends_at', coalesce(active.period_ends_at, active.expires_at),
     'trial_available', not exists (
       select 1 from public.flype_billing_customers c
       where c.user_id = current_user_id and c.trial_used_at is not null

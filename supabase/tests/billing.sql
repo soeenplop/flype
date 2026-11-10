@@ -38,15 +38,16 @@ end $$;
 reset role;
 
 -- A Stripe and an App Store subscription of the same account live side by side, and the longer one wins.
-insert into public.flype_entitlements(user_id, plan, expires_at, source, status, period, will_renew, external_id) values
-  ('00000000-0000-0000-0000-000000000001', 'pro', now() + interval '7 days', 'direct', 'trialing', 'year', true, 'sub_1'),
-  ('00000000-0000-0000-0000-000000000001', 'pro', now() + interval '20 days', 'app_store', 'active', 'month', false, '2000');
+insert into public.flype_entitlements(user_id, plan, expires_at, source, status, period, will_renew, external_id, period_ends_at) values
+  ('00000000-0000-0000-0000-000000000001', 'pro', now() + interval '7 days', 'direct', 'trialing', 'year', true, 'sub_1', now() + interval '4 days'),
+  ('00000000-0000-0000-0000-000000000001', 'pro', now() + interval '20 days', 'app_store', 'active', 'month', false, '2000', now() + interval '17 days');
 set local role authenticated;
 do $$
 declare result jsonb := public.flype_subscription_status();
 begin
   if result->>'plan' <> 'pro' or result->>'source' <> 'app_store' or result->>'period' <> 'month'
-    or (result->>'will_renew')::boolean or (result->>'trial_available')::boolean then
+    or (result->>'will_renew')::boolean or (result->>'trial_available')::boolean
+    or (result->>'period_ends_at')::timestamptz >= (result->>'expires_at')::timestamptz then
     raise exception 'two sources failed: %', result;
   end if;
 end $$;
@@ -89,7 +90,8 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002
 do $$
 declare result jsonb := public.flype_subscription_status();
 begin
-  if result->>'plan' <> 'pro' or result->>'source' <> 'manual' or not (result->>'trial_available')::boolean then
+  if result->>'plan' <> 'pro' or result->>'source' <> 'manual' or not (result->>'trial_available')::boolean
+    or result->>'period_ends_at' <> result->>'expires_at' then
     raise exception 'manual status failed: %', result;
   end if;
 end $$;

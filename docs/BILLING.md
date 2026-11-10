@@ -13,7 +13,7 @@ Prices are gross amounts. Stripe Tax is not used; VAT is reported by binda UG it
 
 Migration `202611100001_subscriptions.sql`:
 
-- `flype_entitlements` has one row per account and source (`direct` for Stripe, `app_store`, `manual`). Only `expires_at` decides Pro. `status`, `period`, `will_renew` and `external_id` describe the subscription to the apps.
+- `flype_entitlements` has one row per account and source (`direct` for Stripe, `app_store`, `manual`). Only `expires_at` decides Pro. `status`, `period`, `will_renew`, `period_ends_at` (the period end without grace, for the dates the apps show) and `external_id` describe the subscription to the apps.
 - `flype_billing_customers` holds the Stripe customer and `trial_used_at`. Only the service role reads it.
 - `flype_subscription_status()` tells the signed-in person the longest active subscription and whether the yearly trial is still open. A recorded trial or any earlier purchase on either platform uses it up; Pro granted by hand does not.
 

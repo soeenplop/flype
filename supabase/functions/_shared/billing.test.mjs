@@ -30,6 +30,7 @@ test('subscription states map to entitlements with a grace period', () => {
   assert.deepEqual(active, {
     source: 'direct', external_id: 'sub_1', period: 'month', status: 'active', will_renew: true,
     expires_at: new Date((NOW + 29 * DAY) * 1000 + GRACE_MS).toISOString(),
+    period_ends_at: new Date((NOW + 29 * DAY) * 1000).toISOString(),
   });
 
   const trial = entitlementFromSubscription(subscription({
@@ -56,6 +57,7 @@ test('subscription states map to entitlements with a grace period', () => {
   const canceled = entitlementFromSubscription(subscription({ status: 'canceled', ended_at: NOW }));
   assert.equal(canceled.status, 'canceled');
   assert.equal(canceled.expires_at, new Date(NOW * 1000).toISOString());
+  assert.equal(canceled.period_ends_at, canceled.expires_at);
 
   assert.equal(entitlementFromSubscription(subscription({ status: 'incomplete' })), null);
 });
