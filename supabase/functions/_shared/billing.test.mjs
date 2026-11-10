@@ -71,7 +71,7 @@ function database({ existing = null, saveStatus = null } = {}) {
       if (saveStatus) throw Object.assign(new Error('failed'), { status: saveStatus });
       calls.saved.push(row);
     },
-    markTrialUsed: async (userID, at) => calls.trials.push({ userID, at }),
+    recordTrial: async (userID, at) => calls.trials.push({ userID, at }),
   };
 }
 

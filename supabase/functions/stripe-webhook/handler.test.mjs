@@ -21,7 +21,7 @@ function fixture({ configured = true, saveStatus = null } = {}) {
     },
     db: {
       entitlement: async () => null,
-      markTrialUsed: async () => {},
+      recordTrial: async () => {},
       saveEntitlement: async row => {
         if (saveStatus) throw Object.assign(new Error('Database POST failed'), { status: saveStatus });
         calls.saved.push(row);

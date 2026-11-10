@@ -61,6 +61,35 @@ Logs name only the event type, the step and the outcome, never an account, custo
 
 Use test mode keys first. `stripe listen --forward-to <local function URL>` and `stripe trigger customer.subscription.updated` exercise the webhook without real payments.
 
+## App Store (iPhone and iPad)
+
+Both plans are auto-renewable subscriptions in the group "Flype Pro": `one.binda.flype.pro.yearly` (level 1, introductory offer free for one week) and `one.binda.flype.pro.monthly` (level 2, no offer). Apple decides who still gets the introductory offer, once per Apple ID and group.
+
+The app buys with `appAccountToken` set to the Supabase user ID and reports every verified transaction to the Edge Function `app-store-verify` (`{"transactionId":"…"}`, with the user's token). The function asks the App Store Server API (`/inApps/v1/subscriptions/{transactionId}`, production first, then the sandbox) for the current state and writes it with `source = 'app_store'` and `external_id` = the original transaction ID. It answers with `flype_subscription_status()`. A purchase whose token names another account, or that already belongs to one, answers 409 and changes nothing. A transaction without a token, such as a redeemed offer code, goes to the reporting account if no account has it yet.
+
+The Edge Function `app-store-notifications` receives App Store Server Notifications V2. It reads only the transaction ID and environment from the payload and fetches the state from Apple, so a forged notification grants nothing; the payload signature is therefore not checked. Test notifications and other apps are acknowledged.
+
+| Apple status | Entitlement |
+| --- | --- |
+| 1 active | until the expiry plus 3 days of grace; `trialing` during the introductory offer |
+| 4 billing grace period | until Apple's grace period ends |
+| 3 billing retry | ends at the expiry |
+| 2 expired, 5 revoked | ends at the expiry or refund |
+
+An introductory offer records `trial_used_at`, so the Stripe trial on the Mac is no longer offered either.
+
+### Setting up the App Store
+
+1. In App Store Connect, create the subscription group and both subscriptions with the IDs above, prices 5.95 € and 59.95 € with Germany as the base country, and the free one-week introductory offer on the yearly plan only.
+2. Under Users and Access > Integrations > In-App Purchase, generate a key. Set its contents and IDs as secrets and deploy:
+
+   ```sh
+   supabase secrets set APP_STORE_ISSUER_ID=… APP_STORE_KEY_ID=… APP_STORE_PRIVATE_KEY="$(cat SubscriptionKey_….p8)"
+   supabase functions deploy app-store-verify
+   supabase functions deploy app-store-notifications --no-verify-jwt
+   ```
+3. Under App Information > App Store Server Notifications, set `https://leystmzdybimmbaruywp.supabase.co/functions/v1/app-store-notifications`, version 2, for production and sandbox.
+
 ## Checks
 
-`./scripts/check.sh backend` tests the signature check, the mapping of every subscription state, the trial rules, the double-checkout guard and cancellation with fake Stripe and database answers. `./scripts/check.sh database` tests the tables and `flype_subscription_status()`.
+`./scripts/check.sh backend` tests the App Store token, ownership and status mapping, the Stripe signature check, the mapping of every subscription state, the trial rules, the double-checkout guard and cancellation with fake Stripe and database answers. `./scripts/check.sh database` tests the tables and `flype_subscription_status()`.

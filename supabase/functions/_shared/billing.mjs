@@ -66,9 +66,15 @@ export function createDatabase({ supabaseURL, serviceKey, fetch }) {
       call('POST', 'flype_billing_customers?on_conflict=user_id',
         { user_id: userID, stripe_customer_id: customerID, updated_at: new Date().toISOString() },
         'resolution=merge-duplicates'),
-    markTrialUsed: (userID, at) =>
-      call('PATCH', `flype_billing_customers?user_id=eq.${userID}&trial_used_at=is.null`,
-        { trial_used_at: at, updated_at: new Date().toISOString() }),
+    // App Store buyers have no Stripe customer, so the row may not exist yet. An earlier trial date stays.
+    recordTrial: async (userID, at) => {
+      await call('POST', 'flype_billing_customers?on_conflict=user_id',
+        { user_id: userID, trial_used_at: at, updated_at: new Date().toISOString() }, 'resolution=ignore-duplicates');
+      await call('PATCH', `flype_billing_customers?user_id=eq.${userID}&trial_used_at=is.null`,
+        { trial_used_at: at, updated_at: new Date().toISOString() });
+    },
+    entitlementOwner: async (source, externalID) =>
+      (await call('GET', `flype_entitlements?source=eq.${source}&external_id=eq.${encodeURIComponent(externalID)}&select=user_id`))[0]?.user_id ?? null,
     entitlement: async (userID, source) =>
       (await call('GET', `flype_entitlements?user_id=eq.${userID}&source=eq.${source}&select=expires_at,external_id`))[0] ?? null,
     saveEntitlement: row =>
@@ -166,7 +172,7 @@ export async function syncSubscription({ stripe, db, subscriptionID, now = Date.
   const userID = subscription.metadata?.user_id;
   if (!userID) return 'unassigned';
   const row = entitlementFromSubscription(subscription, now());
-  if (subscription.trial_start) await db.markTrialUsed(userID, iso(subscription.trial_start));
+  if (subscription.trial_start) await db.recordTrial(userID, iso(subscription.trial_start));
   if (!row) return 'ignored';
   // An older subscription that ends must not replace a newer one that still runs.
   const existing = await db.entitlement(userID, 'direct');

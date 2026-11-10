@@ -28,6 +28,9 @@ case "${1:-all}" in
         node --test supabase/functions/_shared/billing.test.mjs
         node --test supabase/functions/billing/handler.test.mjs
         node --test supabase/functions/stripe-webhook/handler.test.mjs
+        node --test supabase/functions/_shared/appstore.test.mjs
+        node --test supabase/functions/app-store-verify/handler.test.mjs
+        node --test supabase/functions/app-store-notifications/handler.test.mjs
         node --test supabase/eval/cleanup.test.mjs
         ;;
     core)
