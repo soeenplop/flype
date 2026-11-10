@@ -10,32 +10,38 @@ const LANGUAGES = {
   de: {
     name: 'Deutsch',
     examples: 'Beispiele: ‹Wir bauen hier ein ähm nein zwei Häuser.› → ‹Wir bauen hier zwei Häuser.›; ‹Hallo, das ist ein nein das sind zwei Tests.› → ‹Hallo, das sind zwei Tests.›; ‹Der Bau beginnt morgen. Wir bauen hier ein ähm nein zwei Häuser. Der Garten bleibt erhalten.› → ‹Der Bau beginnt morgen. Wir bauen hier zwei Häuser. Der Garten bleibt erhalten.›; ‹Wir bestellen rote nein blaue Stühle für das Büro.› → ‹Wir bestellen blaue Stühle für das Büro.›; ‹Nein, das sind zwei Tests.› → ‹Nein, das sind zwei Tests.›',
+    numbers: '‹zwei Komma acht Prozent mehr, also vierzehn Millionen Euro› → ‹2,8 % mehr, also 14 Millionen Euro›',
     salutation: 'Nach einer Briefanrede mit Komma geht es klein weiter, auch nach Leerzeilen: ‹Hallo Anna,⏎⏎› + ‹Danke für deine Nachricht.› → ‹danke für deine Nachricht.›',
   },
   en: {
     name: 'Englisch',
     examples: 'Examples: ‹Hello, this is one no these are two tests.› → ‹Hello, these are two tests.›; ‹No, these are two tests.› → ‹No, these are two tests.›',
+    numbers: '‹two point eight percent more, so fourteen million dollars› → ‹2.8% more, so 14 million dollars›',
     salutation: 'Nach einer Briefanrede mit Zeilenumbruch geht es groß weiter: ‹Hi Tom,⏎⏎› + ‹thanks for the invite.› → ‹Thanks for the invite.› Das Wort „I“ bleibt immer groß.',
   },
   fr: {
     name: 'Französisch',
     examples: "Exemples : ‹Bonjour, c'est un test non ce sont deux tests.› → ‹Bonjour, ce sont deux tests.› ; ‹Non, ce sont deux tests.› → ‹Non, ce sont deux tests.›",
+    numbers: "‹deux virgule huit pour cent de plus, soit quatorze millions d'euros› → ‹2,8 % de plus, soit 14 millions d'euros›",
     salutation: "Nach einer Briefanrede mit Zeilenumbruch geht es groß weiter: ‹Bonjour Tom,⏎⏎› + ‹merci pour l'invitation.› → ‹Merci pour l'invitation.›",
   },
   it: {
     name: 'Italienisch',
     examples: 'Esempi: ‹Ciao, questo è un test no sono due test.› → ‹Ciao, sono due test.›; ‹No, sono due test.› → ‹No, sono due test.›; ‹Arrivo domani, cioè lunedì.› → ‹Arrivo domani, cioè lunedì.›',
     // Both are common in Italian; lowercase keeps the earlier behaviour.
+    numbers: '‹due virgola otto per cento in più, cioè quattordici milioni di euro› → ‹2,8% in più, cioè 14 milioni di euro›',
     salutation: "Nach einer Briefanrede mit Komma geht es klein weiter, auch nach Leerzeilen: ‹Ciao Tom,⏎⏎› + ‹Grazie per l'invito.› → ‹grazie per l'invito.›",
   },
   es: {
     name: 'Spanisch',
     examples: 'Ejemplos: ‹Hola, esto es una prueba no son dos pruebas.› → ‹Hola, son dos pruebas.›; ‹No, son dos pruebas.› → ‹No, son dos pruebas.›',
+    numbers: '‹dos coma ocho por ciento más, o sea catorce millones de euros› → ‹2,8 % más, o sea 14 millones de euros›',
     salutation: 'Nach einer Briefanrede mit Zeilenumbruch geht es groß weiter: ‹Hola Tom:⏎⏎› + ‹gracias por la invitación.› → ‹Gracias por la invitación.›',
   },
   nl: {
     name: 'Niederländisch',
     examples: 'Voorbeelden: ‹Hallo, dit is een test nee dit zijn twee tests.› → ‹Hallo, dit zijn twee tests.›; ‹Nee, dit zijn twee tests.› → ‹Nee, dit zijn twee tests.›',
+    numbers: '‹twee komma acht procent meer, dus veertien miljoen euro› → ‹2,8% meer, dus 14 miljoen euro›',
     salutation: 'Nach einer Briefanrede mit Zeilenumbruch geht es groß weiter: ‹Beste Tom,⏎⏎› + ‹bedankt voor de uitnodiging.› → ‹Bedankt voor de uitnodiging.›',
   },
 };
@@ -62,10 +68,10 @@ Beispiele (precedingText + transcription → Ausgabe, ⏎ ist ein Zeilenumbruch)
 Beispiele (precedingText + transcription + followingText → Ausgabe): ‹Ich komme› + ‹Morgen.› + ‹zum Essen.› → ‹morgen›; ‹Danke.› + ‹Bis morgen› + ‹Viele Grüße› → ‹Bis morgen.›; ohne followingText: ‹Ich schlage› + ‹Den Montag vor› → ‹den Montag vor.›, ‹Gut für z. B. › + ‹Kleine Gruppen› → ‹kleine Gruppen.›; ‹Wir nehmen› + ‹Das rote.› + ‹Auto von Tom.› → ‹das rote›
 
 Bereinigung:
-Ergänze Interpunktion und korrigiere die Großschreibung nach den Regeln der Sprache: Jeder Satz beginnt groß, auch nach einem Satzzeichen, das du selbst setzt. Beispiel: ‹Ich komme Morgen um Zehn Uhr zu Anna.› → ‹Ich komme morgen um zehn Uhr zu Anna.›
+Ergänze Interpunktion und korrigiere die Großschreibung nach den Regeln der Sprache: Jeder Satz beginnt groß, auch nach einem Satzzeichen, das du selbst setzt. Beispiel: ‹Ich komme Morgen um Zehn Uhr zu Anna.› → ‹Ich komme morgen um 10 Uhr zu Anna.›
 Die Spracherkennung macht viele Fehler, und du kennst die Sprache besser. Korrigiere deshalb Rechtschreibung, Zusammen- und Getrenntschreibung, Grammatik und Wörter, die offensichtlich falsch erkannt wurden und deren richtige Form aus dem Zusammenhang eindeutig hervorgeht. Beispiel: ‹Ich hoffe das es dir gut geht und wir uns bald wieder sehen.› → ‹Ich hoffe, dass es dir gut geht und wir uns bald wiedersehen.›
 Setze Absätze nur bei längeren Texten mit klarem Themenwechsel. Entferne eindeutige Füllwörter und versehentliche Wiederholungen. Wiederholungen zur Betonung bleiben.
-Gesprochene Satzzeichen wie „Komma“ oder „Punkt“ setzt du als genau dieses Zeichen um, wenn sie eindeutig als Befehl gemeint sind. Zwischen Zahlen und als Wort im Satz bleiben sie stehen. Diktierte E-Mail- und Webadressen schreibst du in üblicher Form: ‹max punkt weber at beispiel punkt de› → ‹max.weber@beispiel.de›
+Gesprochene Satzzeichen wie „Komma“ oder „Punkt“ setzt du als genau dieses Zeichen um, wenn sie eindeutig als Befehl gemeint sind. Zwischen Zahlen gehören sie zur Zahl, als Wort im Satz bleiben sie stehen. Diktierte E-Mail- und Webadressen schreibst du in üblicher Form: ‹max punkt weber at beispiel punkt de› → ‹max.weber@beispiel.de›
 
 Selbstkorrekturen:
 Ersetze bei klaren Selbstkorrekturen nur die kleinste zurückgenommene Passage durch die Korrektur und entferne das Korrektursignal: Bei „ein ähm nein zwei Häuser“ wird nur „ein“ zu „zwei“. Der Text davor und danach bleibt vollständig erhalten. Lasse niemals zwei widersprüchliche Angaben nebeneinander stehen.
@@ -73,7 +79,7 @@ Ein inhaltliches „Nein“ als Antwort oder Widerspruch bleibt erhalten. Im Zwe
 ${language.examples}
 
 Grenzen:
-Bewahre Sprache, Bedeutung, Reihenfolge, Namen, Verneinungen, Mengen, Termine und Beträge. Zahlen behalten ihre Form: Zahlwörter bleiben Zahlwörter (‹drei Komma fünf Prozent›), Ziffern bleiben Ziffern. Übersetze und fasse nichts zusammen und ergänze keine Informationen. Bei Unklarheit bleibe möglichst wörtlich.`;
+Bewahre Sprache, Bedeutung, Reihenfolge, Namen, Verneinungen, Mengen, Termine und Beträge. Schreibe Zahlen als Ziffern, wenn sie Nachkommastellen haben, größer als zwölf sind oder zu Prozent, Beträgen, Maßen, Uhrzeiten oder Daten gehören: ${language.numbers}. Kleinere Zahlen im Fließtext bleiben Wörter (‹zwei Häuser›), Ziffern bleiben Ziffern. Der Wert bleibt immer genau gleich. Übersetze und fasse nichts zusammen und ergänze keine Informationen. Bei Unklarheit bleibe möglichst wörtlich.`;
 }
 
 const json = (status, body, headers = {}) => new Response(JSON.stringify(body), {

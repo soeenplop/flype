@@ -1,5 +1,5 @@
 [
-  { "id": "de-punctuation", "language": "de", "text": "ich komme morgen um zehn uhr vorbei", "expected": ["Ich komme morgen um zehn Uhr vorbei."] },
+  { "id": "de-punctuation", "language": "de", "text": "ich komme morgen um zehn uhr vorbei", "expected": ["Ich komme morgen um 10 Uhr vorbei."] },
   { "id": "de-dass", "language": "de", "text": "Ich glaube das wir das schaffen", "expected": ["Ich glaube, dass wir das schaffen."] },
   { "id": "de-compound", "language": "de", "text": "Wir treffen uns im Konferenz Raum", "expected": ["Wir treffen uns im Konferenzraum."] },
   { "id": "de-wiedersehen", "language": "de", "text": "Ich freue mich dich wieder zu sehen", "expected": ["Ich freue mich, dich wiederzusehen."] },
@@ -11,18 +11,22 @@
   },
   { "id": "de-repetition", "language": "de", "text": "Ich ich wollte fragen ob du Zeit hast", "expected": ["Ich wollte fragen, ob du Zeit hast."] },
   { "id": "de-correction-quantity", "language": "de", "text": "Bitte bestell drei nein vier Kartons Papier", "expected": ["Bitte bestell vier Kartons Papier."] },
-  { "id": "de-correction-day", "language": "de", "text": "Das Treffen ist am Dienstag ähm nein am Mittwoch um neun", "expected": ["Das Treffen ist am Mittwoch um neun."] },
+  { "id": "de-correction-day", "language": "de", "text": "Das Treffen ist am Dienstag ähm nein am Mittwoch um neun", "expected": ["Das Treffen ist am Mittwoch um neun.", "Das Treffen ist am Mittwoch um 9.", "Das Treffen ist am Mittwoch um 9 Uhr."] },
   { "id": "de-correction-attribute", "language": "de", "text": "Ich nehme den grünen äh nein den roten Pullover", "expected": ["Ich nehme den roten Pullover."] },
   {
     "id": "de-correction-keeps-sentences", "language": "de",
     "text": "Der Zug fährt um acht. Wir brauchen zwei äh nein drei Tickets. Ich buche sie heute.",
-    "expected": ["Der Zug fährt um acht. Wir brauchen drei Tickets. Ich buche sie heute."]
+    "expected": [
+      "Der Zug fährt um acht. Wir brauchen drei Tickets. Ich buche sie heute.",
+      "Der Zug fährt um 8. Wir brauchen drei Tickets. Ich buche sie heute.",
+      "Der Zug fährt um 8 Uhr. Wir brauchen drei Tickets. Ich buche sie heute."
+    ]
   },
   { "id": "de-no-as-answer", "language": "de", "text": "Nein ich habe keine Zeit", "expected": ["Nein, ich habe keine Zeit."] },
   { "id": "de-negation", "language": "de", "text": "Ich kann am Freitag nicht kommen", "expected": ["Ich kann am Freitag nicht kommen."] },
   {
     "id": "de-amounts", "language": "de", "text": "Die Rechnung beträgt zweihundertfünfzig Euro und ist bis zum fünften März fällig",
-    "expected": ["Die Rechnung beträgt zweihundertfünfzig Euro und ist bis zum fünften März fällig."]
+    "expected": ["Die Rechnung beträgt 250 Euro und ist bis zum 5. März fällig."]
   },
   { "id": "de-question-stays", "language": "de", "text": "Wie spät ist es eigentlich", "expected": ["Wie spät ist es eigentlich?"] },
   {
@@ -76,9 +80,9 @@
   { "id": "en-letter-salutation", "language": "en", "context": "Hello Sarah,\n\n", "text": "thank you for the quick reply", "expected": ["Thank you for the quick reply."] },
   { "id": "nl-letter-salutation", "language": "nl", "context": "Hoi Pieter,\n\n", "text": "dank voor je snelle reactie", "expected": ["Dank voor je snelle reactie."] },
   { "id": "it-letter-salutation", "language": "it", "context": "Ciao Marco,\n\n", "text": "Grazie per l'invito.", "expected": ["grazie per l'invito."] },
-  { "id": "it-continue-lowercase", "language": "it", "context": "Domani prendiamo il", "text": "Treno delle otto.", "expected": ["treno delle otto."] },
+  { "id": "it-continue-lowercase", "language": "it", "context": "Domani prendiamo il", "text": "Treno delle otto.", "expected": ["treno delle otto.", "treno delle 8."] },
   { "id": "de-heading-newline", "language": "de", "context": "Offene Punkte\n", "text": "noch das angebot an müller schicken", "expected": ["Noch das Angebot an Müller schicken", "Noch das Angebot an Müller schicken."] },
-  { "id": "de-newline-only-context", "language": "de", "context": "\n", "text": "wir fangen um neun an", "expected": ["Wir fangen um neun an."] },
+  { "id": "de-newline-only-context", "language": "de", "context": "\n", "text": "wir fangen um neun an", "expected": ["Wir fangen um neun an.", "Wir fangen um 9 an.", "Wir fangen um 9 Uhr an."] },
   { "id": "de-following-comma", "language": "de", "context": "Wir treffen uns", "text": "Am Montag.", "following": ", falls es passt.", "expected": ["am Montag"] },
   { "id": "de-following-noun", "language": "de", "context": "Ich nehme", "text": "Den blauen.", "following": "Mantel aus dem Schaufenster.", "expected": ["den blauen"] },
   { "id": "de-correction-ich-meine", "language": "de", "text": "Die Präsentation ist am Donnerstag ich meine am Freitag", "expected": ["Die Präsentation ist am Freitag."] },
@@ -96,7 +100,7 @@
   { "id": "de-partial-word-term", "language": "de", "text": "Das ist eine solidarische Lösung", "terms": ["Ida"],  "expected": ["Das ist eine solidarische Lösung."] },
   { "id": "de-digits-stay", "language": "de", "text": "Wir bestellen 14 Stühle und drei Tische", "expected": ["Wir bestellen 14 Stühle und drei Tische."] },
   { "id": "de-dictated-punctuation", "language": "de", "text": "Das klappt leider nicht komma wir verschieben auf Freitag punkt", "expected": ["Das klappt leider nicht, wir verschieben auf Freitag."] },
-  { "id": "de-decimal-comma", "language": "de", "text": "Der Zins liegt bei zwei Komma fünf Prozent", "expected": ["Der Zins liegt bei zwei Komma fünf Prozent."] },
+  { "id": "de-decimal-comma", "language": "de", "text": "Der Zins liegt bei zwei Komma fünf Prozent", "expected": ["Der Zins liegt bei 2,5 %."] },
   { "id": "de-punkt-as-word", "language": "de", "text": "Das ist ein guter Punkt", "expected": ["Das ist ein guter Punkt."] },
   { "id": "de-email", "language": "de", "text": "schreib an lena punkt koch at beispiel punkt de", "expected": ["Schreib an lena.koch@beispiel.de.", "Schreib an lena.koch@beispiel.de"] },
   { "id": "de-url-case-stays", "language": "de", "text": "Der Link ist beispiel.de/AbC", "expected": ["Der Link ist beispiel.de/AbC.", "Der Link ist beispiel.de/AbC"] },
@@ -109,11 +113,17 @@
   { "id": "de-ordinal-context", "language": "de", "context": "Das ist bereits der 2. ", "text": "Große Auftrag diese Woche", "expected": ["große Auftrag diese Woche.", "große Auftrag diese Woche"] },
   { "id": "en-dictated-punctuation", "language": "en", "text": "see you on Friday comma thanks for everything period", "expected": ["See you on Friday, thanks for everything."] },
   { "id": "en-period-as-word", "language": "en", "text": "that was a difficult period for us", "expected": ["That was a difficult period for us."] },
-  { "id": "fr-decimal-comma", "language": "fr", "text": "ça fait douze virgule cinq pour cent", "expected": ["Ça fait douze virgule cinq pour cent."] },
+  { "id": "fr-decimal-comma", "language": "fr", "text": "ça fait douze virgule cinq pour cent", "expected": ["Ça fait 12,5 %."] },
   { "id": "de-quatsch-stays", "language": "de", "text": "Quatsch das glaube ich dir nicht", "expected": ["Quatsch, das glaube ich dir nicht.", "Quatsch. Das glaube ich dir nicht.", "Quatsch! Das glaube ich dir nicht."] },
   { "id": "de-sequence-stays", "language": "de", "text": "Erst fahren wir nach Köln dann nach Bonn", "expected": ["Erst fahren wir nach Köln, dann nach Bonn."] },
   { "id": "de-question-repeated", "language": "de", "context": "Klappt das denn jetzt? ", "text": "Klappt das denn jetzt immer noch?", "expected": ["Klappt das denn jetzt immer noch?"] },
   { "id": "de-question-repeated-no-space", "language": "de", "context": "Ist das gut?", "text": "Ist das wirklich gut?", "expected": ["Ist das wirklich gut?"] },
   { "id": "de-question-lowercase-context", "language": "de", "context": "Klappt das denn jetzt? klappt das denn jetzt immer noch? ", "text": "und jetzt", "expected": ["Und jetzt?", "Und jetzt."] },
-  { "id": "de-exclamation-new-sentence", "language": "de", "context": "Toll! ", "text": "das freut mich", "expected": ["Das freut mich."] }
+  { "id": "de-exclamation-new-sentence", "language": "de", "context": "Toll! ", "text": "das freut mich", "expected": ["Das freut mich."] },
+  { "id": "de-percent-millions", "language": "de", "text": "Eine Steigerung um drei Komma fünf Prozent was sieben Millionen Euro entspricht", "expected": ["Eine Steigerung um 3,5 %, was 7 Millionen Euro entspricht."] },
+  { "id": "de-small-numbers-stay", "language": "de", "text": "Wir haben drei Kinder und zwei Hunde", "expected": ["Wir haben drei Kinder und zwei Hunde."] },
+  { "id": "de-large-count", "language": "de", "text": "Es kamen fünfundzwanzig Leute zum Treffen", "expected": ["Es kamen 25 Leute zum Treffen."] },
+  { "id": "en-percent", "language": "en", "text": "Sales went up by four point two percent", "expected": ["Sales went up by 4.2%."] },
+  { "id": "nl-percent", "language": "nl", "text": "de rente is drie komma één procent", "expected": ["De rente is 3,1%."] },
+  { "id": "de-correction-number-digits", "language": "de", "text": "Wir brauchen zwanzig nein dreißig Stühle", "expected": ["Wir brauchen 30 Stühle."] }
 ]

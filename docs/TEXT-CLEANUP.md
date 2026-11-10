@@ -10,7 +10,7 @@ The recognized text stays available as the original. It must replace only the sm
 
 The instructions apply generally to quantities, attributes, dates and clauses, without replacement lists. Language-specific examples and the rule for continuing after a letter's salutation go with the instructions in `supabase/functions/cloud-cleanup/handler.mjs`. Very long input keeps the original instead of being truncated.
 
-Numbers keep their form: number words stay words and digits stay digits. Spoken punctuation such as "Komma" or "Punkt" becomes the mark only when it is clearly meant as one, not between numbers or as a word in the sentence. Dictated email and web addresses are written in their usual form.
+Numbers become digits when they have decimals, are greater than twelve or go with a percentage, amount, measure, time or date, in the usual form of the language: "drei Komma fünf Prozent" becomes "3,5 %", "sieben Millionen Euro" becomes "7 Millionen Euro". Smaller numbers in running text stay words ("zwei Häuser"), and dictated digits stay digits. Spoken punctuation such as "Komma" or "Punkt" becomes the mark only when it is clearly meant as one; between numbers it is part of the number, and as a word in the sentence it stays. Dictated email and web addresses are written in their usual form.
 
 Explicit quantity corrections (a number, optional filler, a correction signal and a replacement number) are resolved directly from the source words first. Ambiguous decimals and sentence boundaries are left alone. The model cannot rewrite quantities or drop other words when no correction signals remain.
 
