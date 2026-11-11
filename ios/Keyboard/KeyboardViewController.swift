@@ -96,6 +96,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private var secondarySymbols = false
     private var typedInSymbols = false
     private var heightConstraint: NSLayoutConstraint?
+    private var rootTop: NSLayoutConstraint?
     private var lastError: String?
     private weak var returnButton: UIButton?
     private var launchHost: UIHostingController<DictationLaunchLink>?
@@ -263,10 +264,12 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         root.spacing = 2
         root.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(root)
+        let rootTop = root.topAnchor.constraint(equalTo: view.topAnchor)
+        self.rootTop = rootTop
         NSLayoutConstraint.activate([
             root.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6),
             root.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6),
-            root.topAnchor.constraint(equalTo: view.topAnchor),
+            rootTop,
             root.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -5),
         ])
         heightConstraint = view.heightAnchor.constraint(equalToConstant: 216)
@@ -427,10 +430,14 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         let recording = voiceSession?.phase == .recording && hasFullAccess
         let processing = voiceSession?.phase.isWorking == true && hasFullAccess
         let barHeight = (suggestionHeight?.constant ?? 44) + 2
+        // Without the word row, the top keys keep a margin to the edge, as on the native keyboard.
+        let keysTop: CGFloat = !usesTabletLayout && !recording && !processing && suggestionBar.isHidden ? 10 : 0
+        rootTop?.constant = keysTop
         // On iPad the word row takes its height from the keys, so the keyboard stays as high as the native one.
         let desiredHeight: CGFloat =
             usesTabletLayout
-            ? tabletKeysHeight : recording || processing ? 216 : 216 + (suggestionBar.isHidden ? 0 : barHeight)
+            ? tabletKeysHeight
+            : recording || processing ? 216 : 216 + (suggestionBar.isHidden ? keysTop : barHeight)
         if heightConstraint?.constant != desiredHeight {
             heightConstraint?.constant = desiredHeight
             preferredContentSize = CGSize(width: view.bounds.width, height: desiredHeight)
