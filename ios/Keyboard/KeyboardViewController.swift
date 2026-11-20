@@ -567,12 +567,20 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
                     row.insertArrangedSubview(leftShoulder, at: 1)
                     row.insertArrangedSubview(rightShoulder, at: row.arrangedSubviews.count - 1)
                     leftShoulder.widthAnchor.constraint(equalTo: rightShoulder.widthAnchor).isActive = true
+                    // In very narrow windows the letters give way slightly rather than break the row.
                     for key in characterKeys {
-                        key.widthAnchor.constraint(
+                        let width = key.widthAnchor.constraint(
                             equalTo: row.widthAnchor, multiplier: 1.0 / CGFloat(language.keyboardRows[0].count),
                             constant: -6.0 * CGFloat(language.keyboardRows[0].count - 1)
                                 / CGFloat(language.keyboardRows[0].count)
-                        ).isActive = true
+                        )
+                        width.priority = .init(999)
+                        width.isActive = true
+                    }
+                    if let reference = characterKeys.first {
+                        for key in characterKeys.dropFirst() {
+                            key.widthAnchor.constraint(equalTo: reference.widthAnchor).isActive = true
+                        }
                     }
                 }
             }
