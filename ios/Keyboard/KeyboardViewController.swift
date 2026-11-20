@@ -97,6 +97,8 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private var typedInSymbols = false
     private var heightConstraint: NSLayoutConstraint?
     private var rootTop: NSLayoutConstraint?
+    private var rootLeading: NSLayoutConstraint?
+    private var rootTrailing: NSLayoutConstraint?
     private var lastError: String?
     private weak var returnButton: UIButton?
     private var launchHost: UIHostingController<DictationLaunchLink>?
@@ -266,9 +268,13 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         view.addSubview(root)
         let rootTop = root.topAnchor.constraint(equalTo: view.topAnchor)
         self.rootTop = rootTop
+        let rootLeading = root.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sideMargin)
+        let rootTrailing = root.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sideMargin)
+        self.rootLeading = rootLeading
+        self.rootTrailing = rootTrailing
         NSLayoutConstraint.activate([
-            root.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6),
-            root.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6),
+            rootLeading,
+            rootTrailing,
             rootTop,
             root.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -5),
         ])
@@ -474,6 +480,8 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         rows.didLayout = nil
         capsLockButton = nil
         rows.spacing = usesTabletLayout ? tabletGap : 10
+        rootLeading?.constant = sideMargin
+        rootTrailing?.constant = -sideMargin
         suggestionBar.sideInset = usesTabletLayout ? view.bounds.width * (usesLargeTabletLayout ? 0.26 : 0.22) : 0
         suggestionHeight?.constant = usesTabletLayout ? 40 : 44
         if usesTabletLayout {
@@ -597,6 +605,10 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
                 }
             })
     }
+
+    /// iPhone keys keep some room from the screen edges; touches there still reach the outer keys.
+    /// The iPad grids are measured against the native ones, so they keep their own margin.
+    private var sideMargin: CGFloat { usesTabletLayout ? 6 : 10 }
 
     // The grids of the native keyboards: a row 1428 units wide on 12.9 inches, 830 on the smaller iPads.
     private var tabletRowWidth: CGFloat { view.bounds.width - 12 }
