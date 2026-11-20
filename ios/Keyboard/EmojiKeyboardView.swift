@@ -7,6 +7,9 @@ final class EmojiKeyboardView: UIView, UICollectionViewDataSource, UICollectionV
     var onSelect: ((String) -> Void)?
     var onLetters: (() -> Void)?
     let deleteButton = UIButton(type: .system)
+    /// Devices without the system's own switcher need a way to the next keyboard here too.
+    let globeButton = UIButton(type: .system)
+    var showsGlobe = false { didSet { globeButton.isHidden = !showsGlobe } }
 
     private var pages: [EmojiCatalog.Page] = []
     private let layout = EmojiGridLayout()
@@ -16,6 +19,8 @@ final class EmojiKeyboardView: UIView, UICollectionViewDataSource, UICollectionV
     private let categories = UIStackView()
     private var categoryButtons: [(EmojiCatalog.Category, UIButton)] = []
     private var shownCategory: EmojiCatalog.Category?
+    /// Set while the recent page is on screen: it changes when it is out of sight, not under the finger.
+    private var recentIsStale = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -44,6 +49,11 @@ final class EmojiKeyboardView: UIView, UICollectionViewDataSource, UICollectionV
         lettersButton.addAction(UIAction { [weak self] _ in self?.onLetters?() }, for: .touchUpInside)
         lettersButton.addAction(UIAction { _ in UIDevice.current.playInputClick() }, for: .touchDown)
 
+        globeButton.setImage(UIImage(systemName: "globe"), for: .normal)
+        globeButton.tintColor = KeyboardKeyAppearance.foreground
+        globeButton.accessibilityLabel = L10n.text("Nächste Tastatur")
+        globeButton.isHidden = true
+
         deleteButton.setImage(UIImage(systemName: "delete.left"), for: .normal)
         deleteButton.tintColor = KeyboardKeyAppearance.foreground
         deleteButton.accessibilityLabel = L10n.text("Löschen")
@@ -51,7 +61,7 @@ final class EmojiKeyboardView: UIView, UICollectionViewDataSource, UICollectionV
 
         categories.axis = .horizontal
         categories.distribution = .fillEqually
-        let bottom = UIStackView(arrangedSubviews: [lettersButton, categories, deleteButton])
+        let bottom = UIStackView(arrangedSubviews: [lettersButton, globeButton, categories, deleteButton])
         bottom.axis = .horizontal
         bottom.spacing = 4
 
@@ -72,6 +82,7 @@ final class EmojiKeyboardView: UIView, UICollectionViewDataSource, UICollectionV
             bottom.bottomAnchor.constraint(equalTo: bottomAnchor),
             bottom.heightAnchor.constraint(equalToConstant: 40),
             lettersButton.widthAnchor.constraint(equalToConstant: 48),
+            globeButton.widthAnchor.constraint(equalToConstant: 40),
             deleteButton.widthAnchor.constraint(equalToConstant: 48),
         ])
     }
@@ -79,6 +90,7 @@ final class EmojiKeyboardView: UIView, UICollectionViewDataSource, UICollectionV
 
     /// Loads the recently used emoji again and starts at the first page, as the native keyboard does.
     func reload() {
+        recentIsStale = false
         pages = EmojiCatalog.pages()
         rebuildCategoryButtons()
         grid.reloadData()
@@ -88,8 +100,44 @@ final class EmojiKeyboardView: UIView, UICollectionViewDataSource, UICollectionV
         showCategory(pages.first?.category)
     }
 
+    /// Takes in what was just sent, keeping the page in view where it is.
+    func refreshRecent() {
+        let visible = Set(grid.indexPathsForVisibleItems.map { pages[$0.section].category })
+        guard !visible.contains(.recent) else {
+            recentIsStale = true
+            return
+        }
+        updateRecent(keepingPosition: true)
+    }
+
+    private func updateRecent(keepingPosition: Bool) {
+        recentIsStale = false
+        let updated = EmojiCatalog.pages()
+        guard updated.map(\.emoji) != pages.map(\.emoji) else { return }
+        let anchor = shownCategory
+        let before = anchor.flatMap(start(of:))
+        let offset = grid.contentOffset.x
+        pages = updated
+        rebuildCategoryButtons()
+        grid.reloadData()
+        grid.layoutIfNeeded()
+        guard keepingPosition else { return }
+        // The recent page can appear or grow in front, so the grid moves by as much to stay put.
+        let shift = (anchor.flatMap(start(of:)) ?? 0) - (before ?? 0)
+        let maxOffset = max(0, grid.contentSize.width - grid.bounds.width)
+        grid.setContentOffset(CGPoint(x: min(max(0, offset + shift), maxOffset), y: 0), animated: false)
+        showCategory(anchor)
+    }
+
+    private func start(of category: EmojiCatalog.Category) -> CGFloat? {
+        guard let section = pages.firstIndex(where: { $0.category == category }) else { return nil }
+        return layout.layoutAttributesForItem(at: IndexPath(item: 0, section: section))?.frame.minX
+    }
+
     private func rebuildCategoryButtons() {
         for (_, button) in categoryButtons { button.removeFromSuperview() }
+        // New buttons carry no selection yet, so the shown page has to be marked again.
+        shownCategory = nil
         categoryButtons = pages.map { page in
             let button = UIButton(type: .system)
             button.setImage(
@@ -107,6 +155,8 @@ final class EmojiKeyboardView: UIView, UICollectionViewDataSource, UICollectionV
     }
 
     private func scroll(to category: EmojiCatalog.Category) {
+        // The grid jumps anyway, so the recent page can catch up now.
+        if recentIsStale { updateRecent(keepingPosition: false) }
         guard let section = pages.firstIndex(where: { $0.category == category }) else { return }
         if section == 0 {
             grid.setContentOffset(.zero, animated: false)
@@ -182,6 +232,14 @@ final class EmojiKeyboardView: UIView, UICollectionViewDataSource, UICollectionV
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) { updateShownCategory() }
+
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        if recentIsStale { refreshRecent() }
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        if !decelerate, recentIsStale { refreshRecent() }
+    }
 
     /// Five rows in portrait, fewer where the keyboard is low, as on the native keyboard.
     private var rowCount: Int { max(3, min(5, Int(grid.bounds.height / 34))) }
