@@ -55,3 +55,12 @@ The keyboard uses `one.binda.flype://dictate` and `one.binda.flype://review`, wh
 - The microphone sits left of the space bar.
 - On iPhone the symbol view follows Apple's keyboard, checked key by key on iOS 27.2: an apostrophe always leads back to the letters, a space or return does once something was typed in the symbol view, and every other symbol stays. Deleting or switching between the two symbol pages does not reset that. iPad keeps its own behavior, where the space leads back.
 - The iPhone key area is 216 points without and 262 points with suggestions, with 10 points between the four rows. iPad has its own layout.
+
+## Emoji
+
+Keyboards from the App Store do not get the system's emoji key, so the iPhone layout has its own, right after 123 (and the globe, where it shows). It opens `EmojiKeyboardView` in place of the keys, laid out like the native emoji keyboard: pages that scroll sideways, the page name above them, and ABC, the page symbols and Delete along the bottom. iPad keeps its native bottom row, whose widths are measured against Apple's.
+
+- The emoji and their order come from the Unicode list in `vendor/UnicodeEmoji`. `scripts/generate_emoji.py` turns it into `EmojiCatalog+Data.swift`. Skin tones are left out, since the native keyboard shows each emoji once.
+- Emoji newer than the system can draw are left out: Emoji 17.0 appears from iOS 26.4.
+- "Frequently used" holds the last 30 emoji sent from this keyboard. They are stored in the extension's own defaults, which works without full access and never leaves the device.
+- The grid sizes its cells from its height, four rows without the word row and five with it. A height change alone keeps a flow layout's cached sizes, so `EmojiGridLayout` asks for them again.

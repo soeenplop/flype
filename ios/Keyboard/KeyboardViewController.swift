@@ -40,6 +40,8 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private var displayedSuggestionContext: WordSuggestionContext?
     private var displayedSuggestionDocumentID: UUID?
     private let recordingView = RecordingLevelView()
+    private let emojiView = EmojiKeyboardView()
+    private var showsEmoji = false
     private var showsInputModeSwitchKey = false
     private var meterTimer: Timer?
     private let insert = UIButton(type: .system)
@@ -319,6 +321,19 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             recordingView.bottomAnchor.constraint(equalTo: root.bottomAnchor),
         ])
         recordingView.isHidden = true
+        view.insertSubview(emojiView, belowSubview: recordingView)
+        emojiView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            emojiView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            emojiView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            emojiView.topAnchor.constraint(equalTo: root.topAnchor),
+            emojiView.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+        ])
+        emojiView.isHidden = true
+        emojiView.onSelect = { [weak self] emoji in self?.typeEmoji(emoji) }
+        emojiView.onLetters = { [weak self] in self?.setShowsEmoji(false) }
+        emojiView.deleteButton.addAction(UIAction { [weak self] _ in self?.deleteCharacter() }, for: .touchUpInside)
+        configureRepeatedDelete(on: emojiView.deleteButton)
         recordingView.stopButton.addTarget(self, action: #selector(stopFromLevelView), for: .touchUpInside)
         recordingView.cancelButton.addTarget(self, action: #selector(cancelFromLevelView), for: .touchUpInside)
         keyPreview.font = .systemFont(ofSize: 30)
@@ -449,7 +464,8 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             preferredContentSize = CGSize(width: view.bounds.width, height: desiredHeight)
             inputView?.invalidateIntrinsicContentSize()
         }
-        root.isHidden = recording || processing
+        root.isHidden = recording || processing || showsEmoji
+        emojiView.isHidden = recording || processing || !showsEmoji
         recordingView.isHidden = !(recording || processing)
         if let phase = voiceSession?.phase, recording || processing { recordingView.show(phase: phase) }
         if recording, let voiceSession {
@@ -1054,6 +1070,14 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             bottom.addArrangedSubview(launchHost.view)
             launchHost.view.widthAnchor.constraint(equalTo: mode.widthAnchor).isActive = true
         }
+        // Keyboards from the App Store do not get the system's emoji key, so the row carries its own.
+        let emoji = key("", special: true)
+        emoji.setImage(UIImage(systemName: "face.smiling"), for: .normal)
+        emoji.accessibilityLabel = L10n.text("Emoji")
+        emoji.addAction(UIAction { [weak self] _ in self?.setShowsEmoji(true) }, for: .touchUpInside)
+        // It sits where the native keyboard puts it: right after the keys that change the layout.
+        bottom.insertArrangedSubview(emoji, at: needsInputModeSwitchKey ? 2 : 1)
+        emoji.widthAnchor.constraint(equalTo: mode.widthAnchor).isActive = true
         bottom.addArrangedSubview(space)
         insert.removeFromSuperview()
         bottom.addArrangedSubview(insert)
@@ -1495,6 +1519,30 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
     private func switchKeys() {
         buildKeys()
         view.layoutIfNeeded()
+    }
+
+    private func setShowsEmoji(_ value: Bool) {
+        guard showsEmoji != value else { return }
+        dismissAlternates()
+        hideKeyPreview()
+        cancelSwipe()
+        showsEmoji = value
+        if value {
+            emojiView.reload()
+        } else if symbols {
+            // ABC leads back to the letters, whichever keys were showing before.
+            symbols = false
+            secondarySymbols = false
+            typedInSymbols = false
+            switchKeys()
+        }
+        updateRecordingView()
+    }
+
+    private func typeEmoji(_ emoji: String) {
+        lastSpaceTap = 0
+        insertText(emoji)
+        EmojiCatalog.remember(emoji)
     }
 
     private func spacePressed() {
