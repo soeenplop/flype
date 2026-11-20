@@ -24,6 +24,15 @@ final class WordSuggestionContextTests: XCTestCase {
         XCTAssertEqual(context.replacementCount, 0)
         XCTAssertEqual(context.precedingWord, "hallo")
     }
+    func testLetterLikeEmojiEndsWord() {
+        let context = WordSuggestionContext(before: "hiℹ️cat", after: "")
+        XCTAssertEqual(context.prefix, "cat")
+        XCTAssertEqual(context.replacementCount, 3)
+        XCTAssertEqual(context.precedingWord, "hi")
+        XCTAssertFalse(SwipeCorrection.isWordCharacter("ℹ️"))
+        XCTAssertTrue(SwipeCorrection.isWordCharacter("ℹ"))
+        XCTAssertTrue(SwipeCorrection.isWordCharacter("ß"))
+    }
     func testApostrophesAndComposedCharactersUseCharacterDeletionCounts() {
         let context = WordSuggestionContext(before: "ich gru\u{0308}", after: "ße")
         XCTAssertEqual(context.replacementCount, 5)

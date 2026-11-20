@@ -69,6 +69,10 @@ final class EmojiKeyboardView: UIView, UICollectionViewDataSource, UICollectionV
             view.translatesAutoresizingMaskIntoConstraints = false
             addSubview(view)
         }
+        // A hidden globe collapses in the stack, so its width must give way.
+        let globeWidth = globeButton.widthAnchor.constraint(equalToConstant: 40)
+        globeWidth.priority = .init(999)
+        globeWidth.isActive = true
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8),
             titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
@@ -82,7 +86,6 @@ final class EmojiKeyboardView: UIView, UICollectionViewDataSource, UICollectionV
             bottom.bottomAnchor.constraint(equalTo: bottomAnchor),
             bottom.heightAnchor.constraint(equalToConstant: 40),
             lettersButton.widthAnchor.constraint(equalToConstant: 48),
-            globeButton.widthAnchor.constraint(equalToConstant: 40),
             deleteButton.widthAnchor.constraint(equalToConstant: 48),
         ])
     }
