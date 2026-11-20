@@ -560,7 +560,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
                         key.widthAnchor.constraint(equalTo: reference.widthAnchor).isActive = true
                     }
                 } else {
-                    // Seven bottom letters retain the width of the eleven keys above.
+                    // The bottom letters prefer the top row's key width.
                     // Flexible shoulders reproduce the native German row's indentation.
                     let leftShoulder = UIView()
                     let rightShoulder = UIView()
@@ -614,8 +614,9 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
             })
     }
 
-    /// iPhone keys keep some room from the screen edges; touches there still reach the outer keys.
-    /// The iPad grids are measured against the native ones, so they keep their own margin.
+    /// The iPhone keys keep some room from the screen edges; touches there still reach the outer keys.
+    /// The iPad grids are measured against the native ones, so they keep their own margin. A narrow iPad window
+    /// shows the iPhone keys and takes their margin too.
     private var sideMargin: CGFloat { usesTabletLayout ? 6 : 10 }
 
     // The grids of the native keyboards: a row 1428 units wide on 12.9 inches, 830 on the smaller iPads.
