@@ -334,6 +334,8 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         emojiView.onLetters = { [weak self] in self?.setShowsEmoji(false) }
         emojiView.deleteButton.addAction(UIAction { [weak self] _ in self?.deleteCharacter() }, for: .touchUpInside)
         configureRepeatedDelete(on: emojiView.deleteButton)
+        emojiView.globeButton.addTarget(
+            self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
         recordingView.stopButton.addTarget(self, action: #selector(stopFromLevelView), for: .touchUpInside)
         recordingView.cancelButton.addTarget(self, action: #selector(cancelFromLevelView), for: .touchUpInside)
         keyPreview.font = .systemFont(ofSize: 30)
@@ -496,6 +498,7 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
         rows.didLayout = nil
         capsLockButton = nil
         rows.spacing = usesTabletLayout ? tabletGap : 10
+        emojiView.showsGlobe = needsInputModeSwitchKey
         rootLeading?.constant = sideMargin
         rootTrailing?.constant = -sideMargin
         suggestionBar.sideInset = usesTabletLayout ? view.bounds.width * (usesLargeTabletLayout ? 0.26 : 0.22) : 0
@@ -1541,8 +1544,13 @@ final class KeyboardViewController: UIInputViewController, UIInputViewAudioFeedb
 
     private func typeEmoji(_ emoji: String) {
         lastSpaceTap = 0
+        // An emoji always ends a word, even one Swift counts as a letter, such as ℹ️. A correction of a deleted
+        // swipe with nothing typed yet ends too, so the next word is not taken as its replacement.
+        if correction?.typed.isEmpty == false { finishCorrection(verifyingText: true) } else { correction = nil }
+        finishTypedWord(verifyingText: true)
         insertText(emoji)
         EmojiCatalog.remember(emoji)
+        emojiView.refreshRecent()
     }
 
     private func spacePressed() {
