@@ -20,6 +20,6 @@ public struct WordSuggestionContext: Equatable, Sendable {
         suffix = String(after.prefix(while: Self.isWordCharacter))
     }
     private static func isWordCharacter(_ character: Character) -> Bool {
-        character.isLetter || character == "'" || character == "’"
+        SwipeCorrection.isWordCharacter(character)
     }
 }

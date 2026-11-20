@@ -37,8 +37,15 @@ public struct SwipeCorrection: Sendable {
         return true
     }
 
+    /// Some emoji are letters to Unicode, such as ℹ️, but they still end a word.
     public static func isWordCharacter(_ character: Character) -> Bool {
-        character.isLetter || character == "'" || character == "’"
+        (character.isLetter && !isEmoji(character)) || character == "'" || character == "’"
+    }
+
+    private static func isEmoji(_ character: Character) -> Bool {
+        let scalars = character.unicodeScalars
+        return scalars.contains { $0.properties.isEmojiPresentation }
+            || (scalars.first?.properties.isEmoji == true && scalars.contains("\u{FE0F}"))
     }
 
     /// The word to count, or nil if it is no word or no change.
